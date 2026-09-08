@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Espressif native USB-Serial-JTAG (ESP32-C6) -->
+    <usb-device vendor-id="12346" />
+    <!-- Silicon Labs CP210x on many C6 DevKit UART ports -->
+    <usb-device vendor-id="4292" />
+    <!-- CDC ACM -->
+    <usb-device class="2" />
+</resources>

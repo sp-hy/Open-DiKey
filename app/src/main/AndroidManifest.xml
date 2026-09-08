@@ -36,6 +36,8 @@
   <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_GET" />
   <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_SET" />
 
+  <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+
   <application
     android:allowBackup="true"
     android:dataExtractionRules="@xml/data_extraction_rules"
@@ -58,8 +60,28 @@
       android:parentActivityName=".MainActivity" />
     <activity
       android:name=".DiKeyProbeActivity"
-      android:exported="false"
+      android:exported="true"
+      android:launchMode="singleTop"
       android:parentActivityName=".MainActivity" />
+    <activity
+      android:name=".UsbProbeActivity"
+      android:exported="true"
+      android:launchMode="singleTop"
+      android:parentActivityName=".MainActivity">
+      <intent-filter>
+        <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
+      </intent-filter>
+      <meta-data
+        android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
+        android:resource="@xml/usb_device_filter" />
+    </activity>
+    <receiver
+      android:name=".usb.UsbPermissionReceiver"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="com.sphy.airconcontroller.USB_PERMISSION" />
+      </intent-filter>
+    </receiver>
 
     <service
       android:name=".service.AirconForegroundService"

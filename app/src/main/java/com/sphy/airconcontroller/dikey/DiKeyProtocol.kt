@@ -214,6 +214,25 @@ object DiKeyProtocol {
 
     fun ByteArray.toHex(): String =
         joinToString(" ") { "%02X".format(it.toInt() and 0xFF) }
+
+    fun ByteArray.toCompactHex(): String =
+        joinToString("") { "%02X".format(it.toInt() and 0xFF) }
+
+    fun parseHex(text: String): ByteArray? {
+        val clean = buildString {
+            for (c in text) {
+                if (c.isLetterOrDigit()) append(c)
+            }
+        }
+        if (clean.isEmpty() || clean.length % 2 != 0) return null
+        return try {
+            ByteArray(clean.length / 2) { i ->
+                clean.substring(i * 2, i * 2 + 2).toInt(16).toByte()
+            }
+        } catch (_: NumberFormatException) {
+            null
+        }
+    }
 }
 
 sealed class DiKeyEvent {

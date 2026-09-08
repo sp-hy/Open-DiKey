@@ -45,6 +45,9 @@ class BydAcController(context: Context) {
     private var lastSetVentilation: Boolean? = null
 
     @Volatile
+    private var lastSetWindMode: Int? = null
+
+    @Volatile
     var lastBindError: String? = null
         private set
 
@@ -483,6 +486,72 @@ class BydAcController(context: Context) {
             { call("setAcMaxCoolingState", state) },
             { call("setAcMaxCoolingState", state, SOURCE_VOICE) },
         )
+    }
+
+    fun togglePower(): CommandResult {
+        val on = snapshot().powerOn ?: false
+        return if (on) stop() else start()
+    }
+
+    /** Compressor A/C, distinct from climate power and air-only/ventilation. */
+    fun toggleCompressor(): CommandResult {
+        if (!ensureDevice()) return notBound()
+        val current = getInt("getAcCompressorMode") ?: 1
+        val next = if (current == 1) 0 else 1
+        return firstSuccess(
+            { call("setAcCompressorMode", SOURCE_VOICE, next) },
+            { call("setAcCompressorMode", SOURCE_UI, next) },
+            { call("setAcCompressorMode", next, SOURCE_VOICE) },
+            { call("setAcCompressorMode", next) },
+        )
+    }
+
+    fun toggleMaxCool(): CommandResult {
+        val on = snapshot().maxCool ?: false
+        return setMaxCool(!on)
+    }
+
+    /**
+     * Face → face+foot → foot → foot+demist. Skips full defrost (that's btn6).
+     * Values come from OEM constants when present; otherwise 1..4.
+     */
+    fun cycleWindDirection(): CommandResult {
+        if (!ensureDevice()) return notBound()
+        val current = getInt("getAcWindMode") ?: lastSetWindMode
+        val modes = windDirectionCycle()
+        val idx = modes.indexOf(current)
+        val next = modes[(if (idx < 0) 0 else idx + 1) % modes.size]
+        val result = firstSuccess(
+            { call("setAcWindMode", SOURCE_VOICE, next) },
+            { call("setAcWindMode", SOURCE_UI, next) },
+            { call("setAcWindMode", next, SOURCE_VOICE) },
+            { call("setAcWindMode", next) },
+        )
+        if (result.success) {
+            lastSetWindMode = next
+            pauseForEcu()
+        }
+        return result
+    }
+
+    private fun windDirectionCycle(): List<Int> {
+        val named = listOfNotNull(
+            constInt("AC_WINDMODE_FACE", "AC_WIND_FACE", "WIND_FACE"),
+            constInt(
+                "AC_WINDMODE_FACE_FOOT",
+                "AC_WINDMODE_FACEANDFOOT",
+                "AC_WINDMODE_FACEFOOT",
+                "AC_WIND_FACE_FOOT",
+                "WIND_FACE_FOOT"
+            ),
+            constInt("AC_WINDMODE_FOOT", "AC_WIND_FOOT", "WIND_FOOT"),
+            constInt(
+                "AC_WINDMODE_FOOT_DEFROST",
+                "AC_WINDMODE_FOOTANDDEFROST",
+                "AC_WIND_FOOT_DEFROST"
+            ),
+        ).distinct().filter { it != WIND_DEFROST }
+        return named.ifEmpty { listOf(1, 2, 3, 4) }
     }
 
     fun dumpMethods(): String {

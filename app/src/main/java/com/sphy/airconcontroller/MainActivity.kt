@@ -34,6 +34,9 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.openDikeyButton).setOnClickListener {
             startActivity(Intent(this, DiKeyProbeActivity::class.java))
         }
+        findViewById<Button>(R.id.openUsbButton).setOnClickListener {
+            startActivity(Intent(this, UsbProbeActivity::class.java))
+        }
 
         observeAdbState()
         maybePromptHiddenApiConsent()
