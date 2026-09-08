@@ -394,6 +394,17 @@ class DiKeyProbeActivity : AppCompatActivity() {
             rightType = rightType.code,
             rightValue = rightValue
         )
+        val snap = settings.ledRestoreSnapshot()
+        client.seedLedMemory(snap)
+        val barsLog = if (snap.bars.isEmpty()) {
+            "(none)"
+        } else {
+            snap.bars.entries.sortedBy { it.key }.joinToString(" · ") { (bar, s) ->
+                "$bar=(${s.color.red},${s.color.green},${s.color.blue})"
+            }
+        }
+        val keysLog = snap.backlight?.let { "(${it.red},${it.green},${it.blue})" } ?: "(unset)"
+        appendLogLine("Prefs · LED bars $barsLog · keys=$keysLog")
     }
 
     private fun requireConnected(): Boolean {
@@ -460,8 +471,9 @@ class DiKeyProbeActivity : AppCompatActivity() {
     }
 
     private fun persistLedFromUi() {
+        // UI-only last selection; strip/backlight maps updated on Apply.
         val mode = LedMode.entries[modeSpinner.selectedItemPosition].code
-        settings.saveLed(
+        settings.saveLedUi(
             modeCode = mode,
             position = LedPosition.entries[positionSpinner.selectedItemPosition].code,
             red = redSeek.progress,
@@ -489,21 +501,18 @@ class DiKeyProbeActivity : AppCompatActivity() {
 
     private fun applyLed(all: Boolean) {
         if (!requireConnected()) return
-        persistLedFromUi()
         val mode = LedMode.entries[modeSpinner.selectedItemPosition].code
         val r = redSeek.progress
         val g = greenSeek.progress
         val b = blueSeek.progress
-        val ok = if (all) {
-            // Vendor ALL = position 4 (not 1..5 individually).
-            client.sendLed(mode, LedPosition.ALL.code, r, g, b)
+        val position = if (all) {
+            LedPosition.ALL.code
         } else {
-            client.sendLed(
-                mode,
-                LedPosition.entries[positionSpinner.selectedItemPosition].code,
-                r, g, b
-            )
+            LedPosition.entries[positionSpinner.selectedItemPosition].code
         }
+        settings.saveStripApply(mode, position, r, g, b)
+        client.seedLedMemory(settings.ledRestoreSnapshot())
+        val ok = client.sendLed(mode, position, r, g, b)
         Snackbar.make(
             connStatusText,
             if (ok) R.string.dikey_led_sent else R.string.dikey_led_send_failed,
@@ -513,8 +522,13 @@ class DiKeyProbeActivity : AppCompatActivity() {
 
     private fun applyBacklight() {
         if (!requireConnected()) return
+        val r = redSeek.progress
+        val g = greenSeek.progress
+        val b = blueSeek.progress
+        settings.saveBacklight(r, g, b)
         persistLedFromUi()
-        val ok = client.sendButtonBacklight(redSeek.progress, greenSeek.progress, blueSeek.progress)
+        client.seedLedMemory(settings.ledRestoreSnapshot())
+        val ok = client.sendButtonBacklight(r, g, b)
         Snackbar.make(
             connStatusText,
             if (ok) R.string.dikey_backlight_sent else R.string.dikey_led_send_failed,

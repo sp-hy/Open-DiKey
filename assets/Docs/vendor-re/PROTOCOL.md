@@ -117,7 +117,7 @@ Without this, LCD may paint once then fail to rotate / drop mode (seen with pass
 2. **`0x06` and `0x07`** allow-lists including every `displayType` you will use  
 3. Then **`0x01`/`0x02`** (and LED/`0x05` as needed)
 
-**Reconnect note:** Device may boot dials to a default temperature (often ~21). Host must **re-push** last dial types/values after setup. Persist that state in the host app (not on the key).
+**Reconnect note:** Device may boot dials to a default temperature (often ~21) and may lose host-applied strip/key colors. Host must **re-push** last dial types/values **and** last LED strip (+ key backlight) after setup. Persist that state in the host app (not on the key).
 
 ---
 
@@ -249,7 +249,7 @@ Colors on the wire are **GRB** (app memory is often RGB).
 | `4` | ALL | **All bars** (1+2+3) — ambient/scene default |
 | `5` | LEFT_RIGHT | **Both outer bars** (1+3) — turn/hazard |
 
-Positions 4 and 5 are multi-zone broadcasts, not extra physical strips. Strip state usually persists on the device across app reconnect; host need only restore UI prefs, not re-apply LED, unless desired.
+Positions 4 and 5 are multi-zone broadcasts, not extra physical strips. On GATT reconnect the device often drops host-applied strip colors; persist **per bar (1–3)** on the host and re-apply each after setup (expand pos 4→1+2+3 and pos 5→1+3 when saving).
 
 ---
 
@@ -263,6 +263,7 @@ Drives the **soft glow on the physical buttons** (separate from strip `0x03`).
 
 - Vendor default prefs often dim blue RGB `(0,0,80)` on the wire as GRB; other scenes/firmware residual can look pink/red.
 - **Clear:** `0x05` with **G=R=B=0**.
+- Persist separately from strip RGB; re-send after reconnect if the host last applied a key glow.
 - Strip commands do **not** clear key backlight.
 
 ---

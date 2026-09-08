@@ -11,6 +11,7 @@ import android.content.Context
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import com.sphy.airconcontroller.storage.LedRestoreSnapshot
 import java.util.ArrayDeque
 import java.util.UUID
 
@@ -44,6 +45,7 @@ class DiKeyBleClient(
      * Live [lastDial*] is cleared on close; this is what reconnect restore uses.
      */
     private var pendingRestore: PendingDialRestore? = null
+    private var pendingLed: LedRestoreSnapshot? = null
 
     private val writeTimeoutRunnable = Runnable {
         if (!writeInFlight) return@Runnable
@@ -90,25 +92,28 @@ class DiKeyBleClient(
 
     fun write(frame: ByteArray): Boolean = enqueue(OutboundWrite(frame))
 
-    fun sendLed(mode: Int, position: Int, red: Int, green: Int, blue: Int): Boolean {
-        return write(DiKeyProtocol.buildLedStrip(mode, position, red, green, blue))
-    }
+    private fun write(item: OutboundWrite): Boolean = enqueue(item)
 
-    /** Push the same LED frame to every segment 1–5 (vendor often drives multiple). */
-    fun sendLedAllPositions(mode: Int, red: Int, green: Int, blue: Int): Boolean {
+    fun sendLed(mode: Int, position: Int, red: Int, green: Int, blue: Int): Boolean {
         if (!ready) {
             postStatus("Not ready to write")
             return false
         }
-        for (pos in 1..5) {
-            writeQueue.addLast(OutboundWrite(DiKeyProtocol.buildLedStrip(mode, pos, red, green, blue)))
-        }
-        drainWriteQueue()
-        return true
+        return write(
+            OutboundWrite(
+                bytes = DiKeyProtocol.buildLedStrip(mode, position, red, green, blue),
+                logLabel = "LED mode=$mode pos=$position rgb=$red,$green,$blue"
+            )
+        )
     }
 
     fun sendButtonBacklight(red: Int, green: Int, blue: Int): Boolean {
-        return write(DiKeyProtocol.buildButtonBacklight(red, green, blue))
+        return write(
+            OutboundWrite(
+                bytes = DiKeyProtocol.buildButtonBacklight(red, green, blue),
+                logLabel = "key backlight rgb=$red,$green,$blue"
+            )
+        )
     }
 
     /**
@@ -211,25 +216,55 @@ class DiKeyBleClient(
         lastDialValueRight = null
     }
 
-    /** After 0x08/0x06/0x07, push both dials from [pendingRestore]. */
+    fun seedLedMemory(snapshot: LedRestoreSnapshot) {
+        pendingLed = snapshot
+        val summary = if (snapshot.bars.isEmpty()) {
+            "(no strip bars)"
+        } else {
+            snapshot.bars.entries.sortedBy { it.key }.joinToString(" · ") { (bar, state) ->
+                "bar$bar rgb=${state.color.red},${state.color.green},${state.color.blue}"
+            }
+        }
+        val keys = snapshot.backlight?.let { "rgb=${it.red},${it.green},${it.blue}" } ?: "(unset)"
+        postStatus("Will restore LED $summary · keys $keys")
+    }
+
+    /** After 0x08/0x06/0x07, push dials + all strip bars + key backlight from prefs. */
     fun restoreSeededDialsToDevice(): Boolean {
         if (!ready) return false
         val pending = pendingRestore
-        if (pending == null) {
-            postStatus("Ready — listening for button / dial events (no dial prefs)")
+        val led = pendingLed
+        if (pending == null && led == null) {
+            postStatus("Ready — listening for button / dial events (no prefs)")
             return false
         }
-        // Force switchDisplay=1 on both sides.
-        lastDialTypeLeft = null
-        lastDialValueLeft = null
-        lastDialTypeRight = null
-        lastDialValueRight = null
-        postStatus(
-            "Restoring dials · L ${DiKeyProtocol.displayTypeLabel(pending.leftType)}=${pending.leftValue} · " +
-                "R ${DiKeyProtocol.displayTypeLabel(pending.rightType)}=${pending.rightValue}"
-        )
-        sendDialDisplay(left = true, displayType = pending.leftType, value = pending.leftValue)
-        sendDialDisplay(left = false, displayType = pending.rightType, value = pending.rightValue)
+        if (pending != null) {
+            lastDialTypeLeft = null
+            lastDialValueLeft = null
+            lastDialTypeRight = null
+            lastDialValueRight = null
+            postStatus(
+                "Restoring dials · L ${DiKeyProtocol.displayTypeLabel(pending.leftType)}=${pending.leftValue} · " +
+                    "R ${DiKeyProtocol.displayTypeLabel(pending.rightType)}=${pending.rightValue}"
+            )
+            sendDialDisplay(left = true, displayType = pending.leftType, value = pending.leftValue)
+            sendDialDisplay(left = false, displayType = pending.rightType, value = pending.rightValue)
+        }
+        if (led != null) {
+            for (bar in led.bars.keys.sorted()) {
+                val state = led.bars[bar] ?: continue
+                postStatus(
+                    "Restoring LED bar$bar · mode=${state.mode} " +
+                        "rgb=${state.color.red},${state.color.green},${state.color.blue}"
+                )
+                sendLed(state.mode, bar, state.color.red, state.color.green, state.color.blue)
+            }
+            val bl = led.backlight
+            if (bl != null) {
+                postStatus("Restoring key backlight · rgb=${bl.red},${bl.green},${bl.blue}")
+                sendButtonBacklight(bl.red, bl.green, bl.blue)
+            }
+        }
         postStatus("Ready — listening for button / dial events")
         return true
     }
@@ -302,7 +337,7 @@ class DiKeyBleClient(
         lastDialValueRight = null
         rangeConfigured = false
         modesConfigured = false
-        // pendingRestore intentionally kept across connect()/close().
+        // pendingRestore / pendingLed intentionally kept across connect()/close().
     }
 
     private data class PendingDialRestore(
