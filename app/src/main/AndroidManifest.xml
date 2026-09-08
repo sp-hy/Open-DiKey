@@ -52,6 +52,14 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+    <activity
+      android:name=".ClimateTestActivity"
+      android:exported="false"
+      android:parentActivityName=".MainActivity" />
+    <activity
+      android:name=".DiKeyProbeActivity"
+      android:exported="false"
+      android:parentActivityName=".MainActivity" />
 
     <service
       android:name=".service.AirconForegroundService"

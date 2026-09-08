@@ -1,0 +1,88 @@
+var __indexUtils = {
+  loadJs: function (url) {
+    var script = document.createElement('script');
+
+    script.type = 'text/javascript';
+    script.src = url;
+
+    document.body.appendChild(script);
+  },
+  getUrlParaNav: function (name) {
+    var reg = new RegExp('(^|&)' + name + '=([^&]*)(&|$)');
+    var r = window.location.search.substr(1).match(reg);
+    if (r != null) return unescape(r[2]);
+    return 0;
+  },
+  compareVersion: function (a, b) {
+    if (a === b) {
+      return true;
+    }
+    const aArr = a.split('.');
+    const bArr = b.split('.');
+    const maxLen = Math.max(aArr.length, bArr.length);
+    if (aArr.length < maxLen) {
+      // eslint-disable-next-line no-plusplus
+      for (let i = aArr.length; i < maxLen; i++) {
+        aArr[i] = 0;
+      }
+    } else if (bArr.length < maxLen) {
+      // eslint-disable-next-line no-plusplus
+      for (let i = bArr.length; i < maxLen; i++) {
+        bArr[i] = 0;
+      }
+    }
+    /* const newA = aArr.join('');
+    const newB = bArr.join('');
+    return Number(newA) >= Number(newB); */
+    let result = false;
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0, len = aArr.length; i < len; i++) {
+      const numA = Number(aArr[i]);
+      const numB = Number(bArr[i]);
+      if (numA < numB) {
+        break;
+      }
+      if (numA > numB) {
+        result = true;
+        break;
+      }
+    }
+    return result;
+  },
+  qiYeWxVersion: function () {
+    const u = navigator.userAgent;
+    const info = u.match(/WxWork\/([/\d/.]+)/i);
+
+    if (info) {
+      return info[1];
+    }
+
+    return '';
+  },
+  isEnableQiWxToMina: function () {
+    const flag =
+      !!__indexUtils.qiYeWxVersion() &&
+      __indexUtils.compareVersion(__indexUtils.qiYeWxVersion(), '3.0.36');
+    return flag;
+  },
+  isInQiYeWeixin: function () {
+    const browser = navigator.userAgent;
+    const isQiYeWeixin = browser.match(/wxwork\//i);
+
+    return !!isQiYeWeixin;
+  },
+};
+
+var isFromPc = __indexUtils.getUrlParaNav('frompc');
+
+if (
+  (__indexUtils.isInQiYeWeixin() && __indexUtils.isEnableQiWxToMina()) ||
+  isFromPc
+) {
+  __indexUtils.loadJs('https://res.wx.qq.com/open/js/jweixin-1.2.0.js');
+  __indexUtils.loadJs(
+    'https://open.work.weixin.qq.com/wwopen/js/jwxwork-1.0.0.js'
+  );
+} else {
+  __indexUtils.loadJs('https://res.wx.qq.com/open/js/jweixin-1.6.0.js');
+}

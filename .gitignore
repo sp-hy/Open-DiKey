@@ -14,3 +14,10 @@
 .cxx
 local.properties
 /ref
+
+# Vendor reverse-engineering dumps (jadx, tools, APK copies).
+# Keep protocol research notes only.
+assets/Vendor APK/
+assets/Docs/vendor-re/**
+!assets/Docs/vendor-re/PROTOCOL.md
+assets/Docs/bt-probe/
