@@ -32,7 +32,7 @@ Sideload the APK from the [latest release](https://github.com/sp-hy/Open-DiKey/r
 
 - Accept **Allow USB debugging**
 - Allow the hidden-API exemption (app restarts)
-- Plug the C3 board into a car USB port
+- Plug the C3 board into the car's **USB-C port** (USB-A ports may not register)
 - If USB permission doesn't pop up, unplug and replug the board while staying in the app
 - Allow Open DiKey in any DiLink **auto-start / run in background** menu if available
 
