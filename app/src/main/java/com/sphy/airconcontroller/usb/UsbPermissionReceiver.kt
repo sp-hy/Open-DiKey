@@ -1,12 +1,11 @@
 package com.sphy.airconcontroller.usb
 
-import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.hardware.usb.UsbManager
 import android.util.Log
-import com.sphy.airconcontroller.DiKeyProbeActivity
+import com.sphy.airconcontroller.OpenDiKeyApp
 import com.sphy.airconcontroller.UsbProbeActivity
 
 /**
@@ -19,13 +18,11 @@ class UsbPermissionReceiver : BroadcastReceiver() {
         if (intent.action != ACTION) return
         val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
         Log.w(TAG, "USB permission result granted=$granted")
-        val target: Class<out Activity> =
-            if (intent.getStringExtra(EXTRA_RETURN) == RETURN_DIKEY) {
-                DiKeyProbeActivity::class.java
-            } else {
-                UsbProbeActivity::class.java
-            }
-        val launch = Intent(context, target).apply {
+        if (intent.getStringExtra(EXTRA_RETURN) == RETURN_DIKEY) {
+            OpenDiKeyApp.from(context).dikey.onUsbPermissionResult(intent)
+            return
+        }
+        val launch = Intent(context, UsbProbeActivity::class.java).apply {
             action = ACTION
             addFlags(
                 Intent.FLAG_ACTIVITY_NEW_TASK or

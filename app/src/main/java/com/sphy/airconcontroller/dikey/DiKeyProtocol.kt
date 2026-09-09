@@ -303,6 +303,8 @@ enum class DialDisplayType(
 
     companion object {
         val probeTypeCodes: Set<Int> = entries.map { it.code }.toSet()
+        val leftCycleTypes: Set<Int> = setOf(PASSENGER_TEMP.code, PASSENGER_FAN.code)
+        val rightCycleTypes: Set<Int> = setOf(DRIVER_TEMP.code, DRIVER_FAN.code)
 
         fun fromCode(code: Int): DialDisplayType? = entries.find { it.code == code }
     }

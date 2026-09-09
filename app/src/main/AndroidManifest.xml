@@ -3,9 +3,10 @@
   xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:tools="http://schemas.android.com/tools"
 >
-  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
   <uses-permission android:name="android.permission.BLUETOOTH" android:maxSdkVersion="30" />
   <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
   <uses-permission
@@ -21,6 +22,12 @@
     android:name="android.permission.WRITE_SECURE_SETTINGS"
     tools:ignore="ProtectedPermissions"
   />
+  <uses-permission
+    android:name="android.permission.SYSTEM_ALERT_WINDOW"
+    tools:ignore="SystemAlertWindowPermission" />
+  <uses-permission
+    android:name="android.permission.START_ACTIVITIES_FROM_BACKGROUND"
+    tools:ignore="ProtectedPermissions" />
   <uses-permission
     android:name="android.permission.READ_LOGS"
     tools:ignore="ProtectedPermissions"
@@ -38,7 +45,19 @@
 
   <uses-feature android:name="android.hardware.usb.host" android:required="false" />
 
+  <uses-permission
+    android:name="android.permission.QUERY_ALL_PACKAGES"
+    tools:ignore="QueryAllPackagesPermission" />
+
+  <queries>
+    <intent>
+      <action android:name="android.intent.action.MAIN" />
+      <category android:name="android.intent.category.LAUNCHER" />
+    </intent>
+  </queries>
+
   <application
+    android:name=".OpenDiKeyApp"
     android:allowBackup="true"
     android:dataExtractionRules="@xml/data_extraction_rules"
     android:fullBackupContent="@xml/backup_rules"
@@ -48,26 +67,15 @@
     android:supportsRtl="true"
     android:theme="@style/Theme.AirconController"
   >
-    <activity android:name=".MainActivity" android:exported="true">
+    <activity
+      android:name=".MainActivity"
+      android:exported="true"
+      android:launchMode="singleTop"
+      android:theme="@style/Theme.OpenDiKey">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
-    </activity>
-    <activity
-      android:name=".ClimateTestActivity"
-      android:exported="false"
-      android:parentActivityName=".MainActivity" />
-    <activity
-      android:name=".DiKeyProbeActivity"
-      android:exported="true"
-      android:launchMode="singleTop"
-      android:parentActivityName=".MainActivity" />
-    <activity
-      android:name=".UsbProbeActivity"
-      android:exported="true"
-      android:launchMode="singleTop"
-      android:parentActivityName=".MainActivity">
       <intent-filter>
         <action android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" />
       </intent-filter>
@@ -75,6 +83,45 @@
         android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED"
         android:resource="@xml/usb_device_filter" />
     </activity>
+    <activity
+      android:name=".ColorConfigActivity"
+      android:exported="false"
+      android:parentActivityName=".MainActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
+      android:name=".ButtonMappingActivity"
+      android:exported="false"
+      android:parentActivityName=".MainActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
+      android:name=".MapEventActivity"
+      android:exported="false"
+      android:parentActivityName=".ButtonMappingActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
+      android:name=".AppPickerActivity"
+      android:exported="false"
+      android:parentActivityName=".MapEventActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
+      android:name=".SettingsHubActivity"
+      android:exported="false"
+      android:parentActivityName=".MainActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
+      android:name=".ClimateTestActivity"
+      android:exported="false"
+      android:parentActivityName=".SettingsHubActivity" />
+    <activity
+      android:name=".DiKeyProbeActivity"
+      android:exported="true"
+      android:launchMode="singleTop"
+      android:parentActivityName=".SettingsHubActivity" />
+    <activity
+      android:name=".UsbProbeActivity"
+      android:exported="true"
+      android:launchMode="singleTop"
+      android:parentActivityName=".SettingsHubActivity" />
     <receiver
       android:name=".usb.UsbPermissionReceiver"
       android:exported="true">
@@ -82,12 +129,23 @@
         <action android:name="com.sphy.airconcontroller.USB_PERMISSION" />
       </intent-filter>
     </receiver>
-
+    <receiver
+      android:name=".boot.DiKeyBootReceiver"
+      android:exported="true">
+      <intent-filter>
+        <action android:name="android.intent.action.BOOT_COMPLETED" />
+        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+        <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+      </intent-filter>
+    </receiver>
     <service
-      android:name=".service.AirconForegroundService"
-      android:enabled="true"
+      android:name=".boot.DiKeyListenService"
       android:exported="false"
-      android:foregroundServiceType="connectedDevice"
-    />
+      android:foregroundServiceType="connectedDevice|specialUse">
+      <property
+        android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+        android:value="DiKey USB/BLE accessory listener after vehicle boot" />
+    </service>
   </application>
 </manifest>

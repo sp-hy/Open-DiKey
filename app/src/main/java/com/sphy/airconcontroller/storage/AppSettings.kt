@@ -5,6 +5,8 @@ import com.sphy.airconcontroller.dikey.DialDisplayType
 import com.sphy.airconcontroller.dikey.LedMode
 import com.sphy.airconcontroller.dikey.LedPosition
 
+data class UpOpenApp(val packageName: String, val label: String)
+
 data class LedRgb(val red: Int, val green: Int, val blue: Int) {
     fun clamped(): LedRgb = LedRgb(
         red.coerceIn(0, 255),
@@ -26,12 +28,6 @@ data class LedRestoreSnapshot(
 
 class AppSettings(context: Context) {
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-
-    var espDeviceName: String
-        get() = prefs.getString(KEY_ESP_DEVICE_NAME, DEFAULT_DEVICE_NAME) ?: DEFAULT_DEVICE_NAME
-        set(value) {
-            prefs.edit().putString(KEY_ESP_DEVICE_NAME, value).apply()
-        }
 
     var dikeyLastAddress: String?
         get() = prefs.getString(KEY_DIKEY_ADDRESS, null)
@@ -159,6 +155,43 @@ class AppSettings(context: Context) {
         dikeyLedBlue = color.blue
     }
 
+    fun upOpenApp(buttonId: Int): UpOpenApp? {
+        val pkg = prefs.getString(upPkgKey(buttonId), null)?.takeIf { it.isNotBlank() } ?: return null
+        val label = prefs.getString(upLabelKey(buttonId), null)?.takeIf { it.isNotBlank() } ?: pkg
+        return UpOpenApp(pkg, label)
+    }
+
+    fun setUpOpenApp(buttonId: Int, packageName: String, label: String) {
+        prefs.edit()
+            .putString(upPkgKey(buttonId), packageName)
+            .putString(upLabelKey(buttonId), label)
+            .apply()
+    }
+
+    fun clearUpOpenApp(buttonId: Int) {
+        prefs.edit()
+            .remove(upPkgKey(buttonId))
+            .remove(upLabelKey(buttonId))
+            .apply()
+    }
+
+    fun colorForBar(bar: Int): LedRgb =
+        getBar(bar)?.color ?: LedRgb(dikeyLedRed, dikeyLedGreen, dikeyLedBlue).clamped()
+
+    fun modeForBar(bar: Int): Int =
+        getBar(bar)?.mode ?: dikeyLedModeCode
+
+    fun colorForBacklight(): LedRgb =
+        if (prefs.getBoolean(KEY_DIKEY_BL_SET, false)) {
+            LedRgb(
+                prefs.getInt(KEY_DIKEY_BL_R, 0),
+                prefs.getInt(KEY_DIKEY_BL_G, 0),
+                prefs.getInt(KEY_DIKEY_BL_B, 80)
+            ).clamped()
+        } else {
+            LedRgb(0, 0, 80)
+        }
+
     fun ledRestoreSnapshot(): LedRestoreSnapshot {
         val bars = linkedMapOf<Int, LedBarState>()
         for (bar in 1..3) {
@@ -215,11 +248,11 @@ class AppSettings(context: Context) {
     private fun barRKey(bar: Int) = "dikey_led_bar${bar}_r"
     private fun barGKey(bar: Int) = "dikey_led_bar${bar}_g"
     private fun barBKey(bar: Int) = "dikey_led_bar${bar}_b"
+    private fun upPkgKey(buttonId: Int) = "dikey_up_btn${buttonId}_pkg"
+    private fun upLabelKey(buttonId: Int) = "dikey_up_btn${buttonId}_label"
 
     companion object {
-        const val DEFAULT_DEVICE_NAME = "BYD-Aircon"
         private const val PREFS_NAME = "aircon_settings"
-        private const val KEY_ESP_DEVICE_NAME = "esp_name"
         private const val KEY_DIKEY_ADDRESS = "dikey_address"
         private const val KEY_DIKEY_UI_LEFT = "dikey_ui_left"
         private const val KEY_DIKEY_LEFT_TYPE = "dikey_left_type"

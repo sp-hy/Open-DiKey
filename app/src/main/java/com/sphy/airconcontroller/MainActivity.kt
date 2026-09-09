@@ -1,71 +1,108 @@
 package com.sphy.airconcontroller
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.hardware.usb.UsbDevice
+import android.hardware.usb.UsbManager
+import android.os.Build
 import android.os.Bundle
-import android.provider.Settings
-import android.widget.Button
-import android.widget.TextView
 import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
+import com.sphy.airconcontroller.ui.OpenDiKeyActivity
+import androidx.core.app.ActivityCompat
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import com.sphy.airconcontroller.adb.AdbPermissionManager
+import com.sphy.airconcontroller.dikey.DiKeySession
+import com.sphy.airconcontroller.usb.UsbPermissionReceiver
 import kotlinx.coroutines.launch
 
-/** Hub: ADB authorize + entry points to Climate and DiKey probe menus. */
-class MainActivity : AppCompatActivity() {
-    private lateinit var setupStatusText: TextView
+class MainActivity : OpenDiKeyActivity() {
+    private lateinit var session: DiKeySession
+    private lateinit var connStatus: android.widget.TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        setupStatusText = findViewById(R.id.setupStatusText)
+        session = OpenDiKeyApp.from(this).dikey
+        connStatus = findViewById(R.id.mainConnStatus)
 
-        findViewById<Button>(R.id.authorizeButton).setOnClickListener {
-            if (!AdbPermissionManager.isPortOpen()) {
-                runCatching { startActivity(Intent(Settings.ACTION_APPLICATION_DEVELOPMENT_SETTINGS)) }
+        findViewById<android.view.View>(R.id.homeColorsButton).setOnClickListener {
+            startActivity(Intent(this, ColorConfigActivity::class.java))
+        }
+        findViewById<android.view.View>(R.id.homeButtonsButton).setOnClickListener {
+            startActivity(Intent(this, ButtonMappingActivity::class.java))
+        }
+        findViewById<android.widget.ImageButton>(R.id.mainSettingsButton).setOnClickListener {
+            startActivity(Intent(this, SettingsHubActivity::class.java))
+        }
+
+        lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                session.status.collect { connStatus.text = it }
             }
-            lifecycleScope.launch { AdbPermissionManager.runSetup(this@MainActivity) }
         }
 
-        findViewById<Button>(R.id.openClimateButton).setOnClickListener {
-            startActivity(Intent(this, ClimateTestActivity::class.java))
-        }
-        findViewById<Button>(R.id.openDikeyButton).setOnClickListener {
-            startActivity(Intent(this, DiKeyProbeActivity::class.java))
-        }
-        findViewById<Button>(R.id.openUsbButton).setOnClickListener {
-            startActivity(Intent(this, UsbProbeActivity::class.java))
-        }
-
-        observeAdbState()
         maybePromptHiddenApiConsent()
         startAdbSetupIfNeeded()
+        handleLaunchIntent(intent)
+        maybeRequestBluetoothPermissions()
     }
 
     override fun onStart() {
         super.onStart()
-        refreshSetupStatus()
+        session.ensureConnected()
     }
 
-    private fun observeAdbState() {
-        lifecycleScope.launch {
-            AdbPermissionManager.state.collect { state ->
-                setupStatusText.text = when (state) {
-                    is AdbPermissionManager.SetupState.Idle ->
-                        if (AdbPermissionManager.isSetupComplete(this@MainActivity)) {
-                            getString(R.string.setup_ready)
-                        } else {
-                            getString(R.string.setup_needed)
-                        }
-                    is AdbPermissionManager.SetupState.Connecting -> getString(R.string.setup_connecting)
-                    is AdbPermissionManager.SetupState.WaitingAuth -> getString(R.string.setup_waiting_auth)
-                    is AdbPermissionManager.SetupState.Granting -> getString(R.string.setup_granting)
-                    is AdbPermissionManager.SetupState.Done -> getString(R.string.setup_ready)
-                    is AdbPermissionManager.SetupState.Failed -> getString(R.string.setup_failed, state.reason)
-                }
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleLaunchIntent(intent)
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == BT_PERMISSION_REQUEST &&
+            grantResults.isNotEmpty() &&
+            grantResults.all { it == PackageManager.PERMISSION_GRANTED }
+        ) {
+            session.ensureConnected()
+        }
+    }
+
+    private fun handleLaunchIntent(intent: Intent?) {
+        if (intent == null) return
+        when (intent.action) {
+            UsbPermissionReceiver.ACTION -> session.onUsbPermissionResult(intent)
+            UsbManager.ACTION_USB_DEVICE_ATTACHED -> {
+                val device = deviceExtra(intent) ?: return
+                session.tryConnectUsb(device)
             }
         }
+    }
+
+    private fun deviceExtra(intent: Intent): UsbDevice? =
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE, UsbDevice::class.java)
+        } else {
+            @Suppress("DEPRECATION")
+            intent.getParcelableExtra(UsbManager.EXTRA_DEVICE)
+        }
+
+    private fun maybeRequestBluetoothPermissions() {
+        if (session.isConnected || session.isUsbOpen) return
+        if (session.hasBluetoothPermissions()) return
+        ActivityCompat.requestPermissions(
+            this,
+            session.requiredBluetoothPermissions(),
+            BT_PERMISSION_REQUEST
+        )
     }
 
     private fun startAdbSetupIfNeeded() {
@@ -73,17 +110,6 @@ class MainActivity : AppCompatActivity() {
             AdbPermissionManager.ensureVehicleApiAccess(this@MainActivity)
             if (!AdbPermissionManager.isSetupComplete(this@MainActivity)) {
                 AdbPermissionManager.runSetup(this@MainActivity)
-            }
-            refreshSetupStatus()
-        }
-    }
-
-    private fun refreshSetupStatus() {
-        if (AdbPermissionManager.state.value is AdbPermissionManager.SetupState.Idle) {
-            setupStatusText.text = if (AdbPermissionManager.isSetupComplete(this)) {
-                getString(R.string.setup_ready)
-            } else {
-                getString(R.string.setup_needed)
             }
         }
     }
@@ -110,5 +136,9 @@ class MainActivity : AppCompatActivity() {
                 AdbPermissionManager.markHiddenApiPrompted(this)
             }
             .show()
+    }
+
+    companion object {
+        private const val BT_PERMISSION_REQUEST = 1001
     }
 }

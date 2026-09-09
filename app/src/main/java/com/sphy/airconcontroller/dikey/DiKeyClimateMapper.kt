@@ -6,9 +6,9 @@ import com.sphy.airconcontroller.byd.BydAcController
 import java.util.concurrent.Executors
 
 /**
- * DOWN-face DiKey clicks → vehicle climate. Dial click cycles temp / fan / media
- * on that side (left = passenger, right = driver). Rotate writes the value.
- * UP-face buttons and encoder UP are ignored.
+ * Pushing a DiKey button downwards → vehicle climate. Dial click toggles
+ * temp / fan on that side (left = passenger, right = driver).
+ * Rotate writes the value. Pushing upwards is handled by [DiKeyUpMapper].
  */
 class DiKeyClimateMapper(
     private val ac: BydAcController,
@@ -20,8 +20,6 @@ class DiKeyClimateMapper(
 
     private var leftMode = DialMode.TEMP
     private var rightMode = DialMode.TEMP
-    private var leftMedia = DialDisplayType.MEDIA_VOLUME.defaultValue
-    private var rightMedia = DialDisplayType.MEDIA_VOLUME.defaultValue
 
     fun handle(event: DiKeyEvent) {
         when (event) {
@@ -60,22 +58,21 @@ class DiKeyClimateMapper(
 
     private fun handleEncoder(event: DiKeyEvent.Encoder) {
         val left = event.side == "LEFT"
-        DialMode.fromDisplayType(event.displayType)?.let { inferred ->
-            if (left) leftMode = inferred else rightMode = inferred
-        }
         when (event.event) {
-            "SINGLE_CLICK" -> cycleDialMode(left, event.displayType)
+            "SINGLE_CLICK" -> cycleDialMode(left)
             "ROTATE_RIGHT", "ROTATE_LEFT" -> {
-                if (DialMode.fromDisplayType(event.displayType) != null) {
-                    applyDialValue(left, event.value)
-                }
+                val inferred = DialMode.fromDisplayType(event.displayType) ?: return
+                if (left) leftMode = inferred else rightMode = inferred
+                applyDialValue(left, event.value)
             }
-            else -> Unit
+            else -> DialMode.fromDisplayType(event.displayType)?.let { inferred ->
+                if (left) leftMode = inferred else rightMode = inferred
+            }
         }
     }
 
-    private fun cycleDialMode(left: Boolean, currentType: Int) {
-        val current = DialMode.fromDisplayType(currentType) ?: if (left) leftMode else rightMode
+    private fun cycleDialMode(left: Boolean) {
+        val current = if (left) leftMode else rightMode
         val next = current.next()
         if (left) leftMode = next else rightMode = next
         io.execute {
@@ -88,10 +85,6 @@ class DiKeyClimateMapper(
                     type.clamp(raw ?: type.defaultValue)
                 }
                 DialMode.FAN -> type.clamp(snap.fanLevel ?: type.defaultValue)
-                DialMode.MEDIA -> {
-                    val stored = if (left) leftMedia else rightMedia
-                    type.clamp(stored)
-                }
             }
             main.post {
                 dikey.sendDialDisplay(left, type.code, value)
@@ -104,11 +97,6 @@ class DiKeyClimateMapper(
 
     private fun applyDialValue(left: Boolean, value: Int) {
         when (if (left) leftMode else rightMode) {
-            DialMode.MEDIA -> {
-                val clamped = DialDisplayType.MEDIA_VOLUME.clamp(value)
-                if (left) leftMedia = clamped else rightMedia = clamped
-                onLog("Climate · ${if (left) "LEFT" else "RIGHT"} media = $clamped (LCD only)")
-            }
             DialMode.TEMP -> io.execute {
                 ac.bind()
                 val temp = value.coerceIn(BydAcController.TEMP_MIN, BydAcController.TEMP_MAX)
@@ -133,16 +121,14 @@ class DiKeyClimateMapper(
         when (mode) {
             DialMode.TEMP -> if (left) DialDisplayType.PASSENGER_TEMP else DialDisplayType.DRIVER_TEMP
             DialMode.FAN -> if (left) DialDisplayType.PASSENGER_FAN else DialDisplayType.DRIVER_FAN
-            DialMode.MEDIA -> DialDisplayType.MEDIA_VOLUME
         }
 
     private enum class DialMode {
-        TEMP, FAN, MEDIA;
+        TEMP, FAN;
 
         fun next(): DialMode = when (this) {
             TEMP -> FAN
-            FAN -> MEDIA
-            MEDIA -> TEMP
+            FAN -> TEMP
         }
 
         companion object {
@@ -150,7 +136,6 @@ class DiKeyClimateMapper(
                 when (DialDisplayType.fromCode(code)) {
                     DialDisplayType.DRIVER_TEMP, DialDisplayType.PASSENGER_TEMP -> TEMP
                     DialDisplayType.DRIVER_FAN, DialDisplayType.PASSENGER_FAN -> FAN
-                    DialDisplayType.MEDIA_VOLUME -> MEDIA
                     else -> null
                 }
         }

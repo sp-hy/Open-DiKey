@@ -126,7 +126,7 @@ class DiKeyController(
             onStatus("Not ready to write")
             return false
         }
-        enqueueDialInfrastructure(DialDisplayType.probeTypeCodes, restoreDialsAfter = false)
+        enqueueDialInfrastructure(restoreDialsAfter = false)
 
         val clamped = DialDisplayType.fromCode(displayType)?.clamp(value) ?: value
         val lastType = if (left) lastDialTypeLeft else lastDialTypeRight
@@ -261,21 +261,18 @@ class DiKeyController(
         return true
     }
 
-    fun configureDialInfrastructure(
-        allowedTypes: Set<Int> = DialDisplayType.probeTypeCodes,
-        restoreDialsAfter: Boolean = true
-    ): Boolean {
+    fun configureDialInfrastructure(restoreDialsAfter: Boolean = true): Boolean {
         if (!ready) {
             onStatus("Not ready to write")
             return false
         }
         modesConfigured = false
-        enqueueDialInfrastructure(allowedTypes, restoreDialsAfter)
+        enqueueDialInfrastructure(restoreDialsAfter)
         drainWriteQueue()
         return true
     }
 
-    private fun enqueueDialInfrastructure(allowedTypes: Set<Int>, restoreDialsAfter: Boolean) {
+    private fun enqueueDialInfrastructure(restoreDialsAfter: Boolean) {
         if (!rangeConfigured) {
             writeQueue.addLast(
                 OutboundWrite(
@@ -288,13 +285,19 @@ class DiKeyController(
         if (!modesConfigured) {
             writeQueue.addLast(
                 OutboundWrite(
-                    bytes = DiKeyProtocol.buildEncoderModeConfig(left = false, allowedTypes),
-                    logLabel = "mode RIGHT 0x06 types=$allowedTypes"
+                    bytes = DiKeyProtocol.buildEncoderModeConfig(
+                        left = false,
+                        DialDisplayType.rightCycleTypes
+                    ),
+                    logLabel = "mode RIGHT 0x06 types=${DialDisplayType.rightCycleTypes}"
                 )
             )
             writeQueue.addLast(
                 OutboundWrite(
-                    bytes = DiKeyProtocol.buildEncoderModeConfig(left = true, allowedTypes),
+                    bytes = DiKeyProtocol.buildEncoderModeConfig(
+                        left = true,
+                        DialDisplayType.leftCycleTypes
+                    ),
                     onSuccess = {
                         modesConfigured = true
                         if (restoreDialsAfter) {
@@ -303,7 +306,7 @@ class DiKeyController(
                             onStatus("Ready — listening for button / dial events")
                         }
                     },
-                    logLabel = "mode LEFT 0x07 types=$allowedTypes"
+                    logLabel = "mode LEFT 0x07 types=${DialDisplayType.leftCycleTypes}"
                 )
             )
         } else if (restoreDialsAfter) {
