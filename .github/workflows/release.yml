@@ -32,11 +32,11 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
       
-      - name: Build release APK
-        run: ./gradlew assembleRelease
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
       
       - name: Rename APK
-        run: mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/open-dikey.apk
+        run: mv app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/open-dikey.apk
       
       - name: Install PlatformIO
         run: pip install -U platformio
@@ -62,7 +62,7 @@ jobs:
             
             See the [README](https://github.com/sp-hy/Open-DiKey#installation) for details.
           files: |
-            app/build/outputs/apk/release/open-dikey.apk
+            app/build/outputs/apk/debug/open-dikey.apk
             firmware/dikey-usb-bridge-c3.bin
           draft: false
           prerelease: false
