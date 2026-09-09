@@ -1,15 +1,18 @@
 // DiKey USB↔BLE bridge for DiLink 5.
 //
+// Target: ESP32-C3 Super Mini (native USB CDC).
+// Merged image: dikey-usb-bridge-c3.bin — flash at 0x0 via https://esp.huhn.me/
+//
 // Arduino IDE:
-//   Board: ESP32C6 Dev Module
+//   Board: ESP32C3 Dev Module
 //   USB CDC On Boot: Enabled
 //   Library: NimBLE-Arduino (h2zero)
 //
-// Native USB → car. C6 is BLE central to DiKey (FF10 / FF11 / FF12).
+// Native USB → car. C3 is BLE central to DiKey (FF10 / FF11 / FF12).
 //
 // USB lines (LF). Hex uppercase, spaces optional.
-//   Host→C6: PING | ID | STATUS | SCAN | TX <hex>
-//   C6→Host: HELLO ODK-BRIDGE | PONG | ID ODK-BRIDGE
+//   Host→bridge: PING | ID | STATUS | SCAN | TX <hex>
+//   Bridge→host: HELLO ODK-BRIDGE | PONG | ID ODK-BRIDGE
 //            STATE SCANNING|CONNECTING|READY|DISCONNECTED …
 //            RX <hex> | TXOK | TXERR <reason> | HB <state> | LOG …
 #include <Arduino.h>

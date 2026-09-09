@@ -325,7 +325,7 @@ class DiKeySession(private val app: Context) {
             PendingIntent.FLAG_MUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
         emitLog("Requesting USB permission…")
-        _status.value = "Waiting for USB permission. If no popup appears, unplug and replug the C6."
+        _status.value = "Waiting for USB permission. If no popup appears, unplug and replug the USB bridge."
         usbManager.requestPermission(device, pi)
         mainHandler.postDelayed({
             if (!waitingUsbPermission || usbBridge.isUsbOpen) return@postDelayed
