@@ -32,8 +32,11 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x ./gradlew
       
-      - name: Build APK
-        run: ./gradlew assembleDebug
+      - name: Build release APK
+        run: ./gradlew assembleRelease
+      
+      - name: Rename APK
+        run: mv app/build/outputs/apk/release/app-release-unsigned.apk app/build/outputs/apk/release/open-dikey.apk
       
       - name: Install PlatformIO
         run: pip install -U platformio
@@ -55,11 +58,11 @@ jobs:
             ## Installation
             
             1. Flash `dikey-usb-bridge-c3.bin` onto an ESP32-C3 Super Mini
-            2. Install `app-debug.apk` on the DiLink 5 head unit
+            2. Install `open-dikey.apk` on the DiLink 5 head unit
             
             See the [README](https://github.com/sp-hy/Open-DiKey#installation) for details.
           files: |
-            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/release/open-dikey.apk
             firmware/dikey-usb-bridge-c3.bin
           draft: false
           prerelease: false

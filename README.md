@@ -15,7 +15,7 @@ Replaces (or coexists with) the vendor app (`迪铠智联`). Runs on DiLink 5 he
 ### What you need
 
 - DiLink 5 head unit with USB debugging enabled
-- ESP32-C3 Super Mini board
+- **ESP32-C3 Super Mini board** — [AliExpress](https://www.aliexpress.com/item/1005012631245655.html) or [Amazon AU](https://www.amazon.com.au/dp/B0GR475MP4)
 - USB cable
 
 ### Steps
