@@ -2,11 +2,21 @@
 
 Open-source Android app for the **DiKey** aftermarket center-console controller.
 
-Replaces (or coexists with) the vendor app (`迪铠智联`). Runs on DiLink 5 head units and drives climate controls through local BYD APIs.
+Replaces the vendor app DiKey Smart Link (`迪铠智联`). Runs on DiLink 5 head units and drives climate controls through local BYD APIs.
 
 > **Note:** The commercial DiKey hardware is sold as _BYD Shark 6 DiKey Vehicle Intelligent Keys_ on [Alibaba](https://www.alibaba.com/product-detail/BYD-Shark-6-DiKey-Vehicle-Intelligent_1601923176905.html). Not affiliated with DiKey, BYD, or the seller. Use at your own risk.
 
-<img width="400" alt="image" src="https://github.com/user-attachments/assets/203e3468-4319-4792-8115-004902720a83" /><img width="400" alt="image" src="https://github.com/user-attachments/assets/332d7a0f-0cef-4ad0-888a-090547291e89" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/203e3468-4319-4792-8115-004902720a83" /><img width="400" alt="image" src="https://github.com/user-attachments/assets/332d7a0f-0cef-4ad0-888a-090547291e89" /><img width="400" alt="image" src="https://github.com/user-attachments/assets/62957600-bbc8-445e-ad51-03ba85a635f3" />
+
+---
+
+## Compatibility
+
+| Vehicle | Status |
+| ------- | ------ |
+| BYD Shark 6 | Supported |
+
+Other vehicles are untested.
 
 ---
 
@@ -103,7 +113,7 @@ After that, the listener starts automatically on reboot.
 - [x] Boot listener
 - [ ] More event types
 - [ ] Sync button action
-- [ ] Vehicle compatibility docs
+- [x] Vehicle compatibility docs
 
 ---
 
