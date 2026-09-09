@@ -15,16 +15,16 @@ import android.util.Log
 import android.widget.Button
 import android.widget.ListView
 import android.widget.TextView
-import androidx.appcompat.app.AppCompatActivity
 import com.sphy.airconcontroller.usb.UsbDeviceListAdapter
 import com.sphy.airconcontroller.usb.UsbHostSerial
 import com.sphy.airconcontroller.usb.UsbPermissionReceiver
+import com.sphy.airconcontroller.ui.OpenDiKeyActivity
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /** Lists USB host devices, opens the C6 serial probe, sends PING/ID. */
-class UsbProbeActivity : AppCompatActivity() {
+class UsbProbeActivity : OpenDiKeyActivity() {
     private lateinit var usbManager: UsbManager
     private lateinit var serial: UsbHostSerial
     private lateinit var statusText: TextView

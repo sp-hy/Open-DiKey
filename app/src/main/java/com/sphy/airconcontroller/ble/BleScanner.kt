@@ -21,7 +21,6 @@ import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Combined LE scanner + classic inquiry. Accumulates nearby devices for a UI list.
- * Separate from [BleCommandListener], which auto-connects to a named ESP32 target.
  */
 class BleScanner(
     private val context: Context,

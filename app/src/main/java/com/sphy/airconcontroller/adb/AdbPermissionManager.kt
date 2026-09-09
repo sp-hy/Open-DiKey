@@ -54,6 +54,16 @@ object AdbPermissionManager {
         "android.permission.BYDAUTO_BODYWORK_SET",
     )
 
+    private val BACKGROUND_LAUNCH_GRANTS = listOf(
+        "pm grant \$pkg android.permission.SYSTEM_ALERT_WINDOW",
+        "appops set \$pkg SYSTEM_ALERT_WINDOW allow",
+        "appops set \$pkg START_ACTIVITIES_FROM_BACKGROUND allow",
+        "cmd appops set \$pkg START_ACTIVITIES_FROM_BACKGROUND allow",
+        "dumpsys deviceidle whitelist +\$pkg",
+        "appops set \$pkg RUN_IN_BACKGROUND allow",
+        "appops set \$pkg RUN_ANY_IN_BACKGROUND allow",
+    )
+
     sealed class SetupState {
         object Idle : SetupState()
         object Connecting : SetupState()
@@ -181,25 +191,24 @@ object AdbPermissionManager {
     }
 
     suspend fun runShellCommand(context: Context, command: String): ShellResult = withContext(Dispatchers.IO) {
-        val safeCommand = command.trim()
-        if (safeCommand.isBlank()) return@withContext ShellResult(-1, "No command entered")
+        shellSync(context, command)
+    }
 
-        if (!isPortOpen()) {
-            return@withContext ShellResult(-1, "Local ADB port 5555 is not reachable")
+    /**
+     * Start a launcher activity as shell so it works while Open DiKey is in the background.
+     * [android.app.Activity.startActivity] from a cached process is dropped by Android.
+     */
+    fun launchComponent(context: Context, packageName: String, component: String?): Boolean {
+        val cmd = if (!component.isNullOrBlank()) {
+            "am start -n $component -f 0x10000000"
+        } else {
+            "monkey -p $packageName -c android.intent.category.LAUNCHER 1"
         }
-
-        val keyPair = getOrCreateKeyPair(context)
-        val dadb = tryConnect(keyPair, timeoutMs = 2_000)
-            ?: return@withContext ShellResult(-1, "ADB is not authorized yet")
-
-        try {
-            val result = dadb.shell(safeCommand)
-            ShellResult(result.exitCode, result.allOutput.trim())
-        } catch (e: Exception) {
-            ShellResult(-1, "Command failed: ${e.message}")
-        } finally {
-            runCatching { dadb.close() }
-        }
+        val result = shellSync(context, cmd)
+        val out = result.output
+        return result.exitCode == 0 ||
+            out.contains("Starting", ignoreCase = true) ||
+            out.contains("Events injected", ignoreCase = true)
     }
 
     suspend fun runShellBatch(
@@ -247,6 +256,12 @@ object AdbPermissionManager {
         }
         if (hiddenApiConsent) applyHiddenApiExemptionIfNeeded(dadb)
         else Log.i(TAG, "hidden-api exemption skipped (no consent)")
+        BACKGROUND_LAUNCH_GRANTS.forEach { cmd ->
+            runCatching {
+                val r = dadb.shell(cmd.replace("\$pkg", pkg))
+                if (r.allOutput.isNotBlank()) Log.d(TAG, "bg-launch: $cmd -> ${r.allOutput.trim()}")
+            }
+        }
     }
 
     private fun applyHiddenApiExemptionIfNeeded(dadb: Dadb) {
@@ -335,6 +350,23 @@ object AdbPermissionManager {
         Socket(ADB_HOST, ADB_PORT).use { true }
     } catch (_: Exception) {
         false
+    }
+
+    private fun shellSync(context: Context, command: String): ShellResult {
+        val safeCommand = command.trim()
+        if (safeCommand.isBlank()) return ShellResult(-1, "No command entered")
+        if (!isPortOpen()) return ShellResult(-1, "Local ADB port 5555 is not reachable")
+        val keyPair = getOrCreateKeyPair(context)
+        val dadb = tryConnect(keyPair, timeoutMs = 2_000)
+            ?: return ShellResult(-1, "ADB is not authorized yet")
+        return try {
+            val result = dadb.shell(safeCommand)
+            ShellResult(result.exitCode, result.allOutput.trim())
+        } catch (e: Exception) {
+            ShellResult(-1, "Command failed: ${e.message}")
+        } finally {
+            runCatching { dadb.close() }
+        }
     }
 
     private fun getOrCreateKeyPair(context: Context): AdbKeyPair {

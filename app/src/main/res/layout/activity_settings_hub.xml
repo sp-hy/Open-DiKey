@@ -5,122 +5,132 @@
     android:layout_height="match_parent"
     android:background="@android:color/transparent"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context=".SettingsHubActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="28dp"
-        android:paddingTop="16dp"
-        android:paddingEnd="12dp"
+        android:paddingStart="8dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="20dp"
         android:paddingBottom="8dp">
 
-        <LinearLayout
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/hub_title"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
-                android:textColor="@color/text_primary"
-                android:textStyle="bold" />
-
-            <TextView
-                android:id="@+id/mainConnStatus"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
-                android:text="@string/dikey_status_idle"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                android:textColor="@color/text_muted" />
-        </LinearLayout>
-
         <ImageButton
-            android:id="@+id/mainSettingsButton"
+            android:id="@+id/settingsBackButton"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="@string/settings_menu_title"
+            android:contentDescription="@string/navigate_back"
             android:padding="12dp"
-            android:src="@drawable/ic_settings"
+            android:src="@drawable/ic_arrow_back"
             android:tint="@color/text_primary" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/settings_menu_title"
+            android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold" />
     </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingStart="28dp"
-        android:paddingEnd="28dp"
-        android:paddingBottom="28dp">
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="24dp">
 
         <LinearLayout
-            android:id="@+id/homeColorsButton"
+            android:id="@+id/openClimateButton"
             android:layout_width="0dp"
             android:layout_height="match_parent"
             android:layout_marginEnd="12dp"
             android:layout_weight="1"
             android:background="@drawable/bg_feature_tile"
             android:clickable="true"
-            android:contentDescription="@string/color_config_title"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground"
-            android:gravity="center_vertical"
             android:orientation="vertical"
-            android:padding="28dp">
+            android:padding="24dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/color_config_title"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
+                android:text="@string/menu_climate"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
                 android:textColor="@color/text_primary"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/color_home_subtitle"
+                android:layout_marginTop="10dp"
+                android:text="@string/menu_climate_desc"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
                 android:textColor="@color/text_muted" />
         </LinearLayout>
 
         <LinearLayout
-            android:id="@+id/homeButtonsButton"
+            android:id="@+id/openDikeyButton"
             android:layout_width="0dp"
             android:layout_height="match_parent"
+            android:layout_marginEnd="12dp"
             android:layout_weight="1"
             android:background="@drawable/bg_feature_tile"
             android:clickable="true"
-            android:contentDescription="@string/button_mapping_title"
             android:focusable="true"
             android:foreground="?attr/selectableItemBackground"
-            android:gravity="center_vertical"
             android:orientation="vertical"
-            android:padding="28dp">
+            android:padding="24dp">
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/button_mapping_title"
-                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline5"
+                android:text="@string/menu_dikey"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
                 android:textColor="@color/text_primary"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="@string/button_mapping_home_subtitle"
+                android:layout_marginTop="10dp"
+                android:text="@string/menu_dikey_desc"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                android:textColor="@color/text_muted" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/openUsbButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/bg_feature_tile"
+            android:clickable="true"
+            android:focusable="true"
+            android:foreground="?attr/selectableItemBackground"
+            android:orientation="vertical"
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/menu_usb"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:text="@string/menu_usb_desc"
                 android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
                 android:textColor="@color/text_muted" />
         </LinearLayout>

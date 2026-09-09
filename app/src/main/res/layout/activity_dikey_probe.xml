@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@android:color/transparent"
     android:fillViewport="true">
 
     <LinearLayout
@@ -29,85 +30,6 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/ble_scan_section_title"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
-
-        <TextView
-            android:id="@+id/bleScanStatusText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="@string/ble_scan_idle"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Body2" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/startBleScanButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:layout_weight="1"
-                android:text="@string/ble_scan_start" />
-
-            <Button
-                android:id="@+id/stopBleScanButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
-                android:text="@string/ble_scan_stop" />
-        </LinearLayout>
-
-        <TextView
-            android:id="@+id/bleSelectedDeviceText"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="6dp"
-            android:text="@string/ble_scan_none_selected"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
-            android:textColor="?android:attr/textColorSecondary" />
-
-        <ListView
-            android:id="@+id/bleDeviceList"
-            android:layout_width="match_parent"
-            android:layout_height="220dp"
-            android:layout_marginTop="8dp"
-            android:divider="?android:attr/listDivider"
-            android:dividerHeight="1dp"
-            android:nestedScrollingEnabled="true" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/dikeyConnectButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginEnd="6dp"
-                android:layout_weight="1"
-                android:text="@string/dikey_connect" />
-
-            <Button
-                android:id="@+id/dikeyDisconnectButton"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:layout_weight="1"
-                android:text="@string/dikey_disconnect" />
-        </LinearLayout>
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:text="@string/dikey_input_section"
             android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
@@ -119,7 +41,7 @@
             android:layout_marginTop="6dp"
             android:background="?android:attr/editTextBackground"
             android:fontFamily="monospace"
-            android:minHeight="140dp"
+            android:minHeight="280dp"
             android:padding="8dp"
             android:text="@string/dikey_event_log_empty"
             android:textIsSelectable="true"
@@ -130,168 +52,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="@string/dikey_clear_log" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/dikey_dial_section"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/dikey_dial_side"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
-
-        <Spinner
-            android:id="@+id/dikeyDialSideSpinner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/dikey_dial_type"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
-
-        <Spinner
-            android:id="@+id/dikeyDialTypeSpinner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" />
-
-        <TextView
-            android:id="@+id/dikeyDialValueLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/dikey_dial_value"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
-
-        <SeekBar
-            android:id="@+id/dikeyDialValueSeek"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="40"
-            android:progress="24" />
-
-        <Button
-            android:id="@+id/dikeyApplyDialButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/dikey_apply_dial" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="20dp"
-            android:text="@string/dikey_led_section"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/dikey_led_mode"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
-
-        <Spinner
-            android:id="@+id/dikeyLedModeSpinner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/dikey_led_position"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
-
-        <Spinner
-            android:id="@+id/dikeyLedPositionSpinner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp" />
-
-        <TextView
-            android:id="@+id/dikeyLedRedLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/dikey_led_red"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
-
-        <SeekBar
-            android:id="@+id/dikeyLedRedSeek"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="255"
-            android:progress="255" />
-
-        <TextView
-            android:id="@+id/dikeyLedGreenLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/dikey_led_green"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
-
-        <SeekBar
-            android:id="@+id/dikeyLedGreenSeek"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="255"
-            android:progress="40" />
-
-        <TextView
-            android:id="@+id/dikeyLedBlueLabel"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/dikey_led_blue"
-            android:textAppearance="@style/TextAppearance.MaterialComponents.Caption" />
-
-        <SeekBar
-            android:id="@+id/dikeyLedBlueSeek"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="255"
-            android:progress="0" />
-
-        <View
-            android:id="@+id/dikeyLedPreview"
-            android:layout_width="match_parent"
-            android:layout_height="36dp"
-            android:layout_marginTop="12dp"
-            android:background="#FFFF2800" />
-
-        <Button
-            android:id="@+id/dikeyApplyLedButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/dikey_apply_led" />
-
-        <Button
-            android:id="@+id/dikeyApplyLedAllButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/dikey_apply_led_all" />
-
-        <Button
-            android:id="@+id/dikeyApplyBacklightButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
             android:layout_marginBottom="24dp"
-            android:text="@string/dikey_apply_backlight" />
+            android:text="@string/dikey_clear_log" />
     </LinearLayout>
 </ScrollView>
