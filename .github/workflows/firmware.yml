@@ -1,0 +1,38 @@
+name: Firmware
+
+on:
+  push:
+    paths:
+      - "firmware/**"
+      - ".github/workflows/firmware.yml"
+  pull_request:
+    paths:
+      - "firmware/**"
+      - ".github/workflows/firmware.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firmware-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install PlatformIO
+        run: pip install -U platformio
+      - name: Build C3 Super Mini image
+        working-directory: firmware
+        run: pio run
+      - name: Upload merged image
+        uses: actions/upload-artifact@v4
+        with:
+          name: dikey-usb-bridge-c3
+          path: firmware/dikey-usb-bridge-c3.bin

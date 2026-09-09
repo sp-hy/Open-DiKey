@@ -10,7 +10,7 @@ import com.sphy.airconcontroller.dikey.DiKeyFrameSink
 import com.sphy.airconcontroller.dikey.DiKeyProtocol
 
 /**
- * USB serial link to firmware/src/DiKeyUsbBridge. C6 owns DiKey GATT;
+ * USB serial link to firmware/src/DiKeyUsbBridge. The C3 owns DiKey GATT;
  * this forwards TX hex and feeds RX notifies into [DiKeyController].
  */
 class DiKeyUsbBridge(
