@@ -4,7 +4,9 @@ Open-source Android app for the **DiKey** aftermarket center-console controller.
 
 Replaces (or coexists with) the vendor app (`迪铠智联`). Runs on DiLink 5 head units and drives climate controls through local BYD APIs.
 
-> **Note:** The commercial DiKey hardware is sold as *BYD Shark 6 DiKey Vehicle Intelligent Keys* on [Alibaba](https://www.alibaba.com/product-detail/BYD-Shark-6-DiKey-Vehicle-Intelligent_1601923176905.html). Not affiliated with DiKey, BYD, or the seller. Use at your own risk.
+> **Note:** The commercial DiKey hardware is sold as _BYD Shark 6 DiKey Vehicle Intelligent Keys_ on [Alibaba](https://www.alibaba.com/product-detail/BYD-Shark-6-DiKey-Vehicle-Intelligent_1601923176905.html). Not affiliated with DiKey, BYD, or the seller. Use at your own risk.
+
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/203e3468-4319-4792-8115-004902720a83" /><img width="400" alt="image" src="https://github.com/user-attachments/assets/332d7a0f-0cef-4ad0-888a-090547291e89" />
 
 ---
 
@@ -52,18 +54,18 @@ After that, the listener starts automatically on reboot.
 
 ## Button reference
 
-| Button | Downward press |
-|--------|----------------|
-| 1 | Climate on/off |
-| 2 | A/C compressor |
-| 3 | Cycle wind |
-| 4 | Recirc |
-| 5 | Auto |
-| 6 | Front defog |
-| 7 | Rear window / mirrors |
-| 8 | Air only |
-| 9 | Sync *(not mapped yet)* |
-| 10 | Max cool |
+| Button | Downward press          |
+| ------ | ----------------------- |
+| 1      | Climate on/off          |
+| 2      | A/C compressor          |
+| 3      | Cycle wind              |
+| 4      | Recirc                  |
+| 5      | Auto                    |
+| 6      | Front defog             |
+| 7      | Rear window / mirrors   |
+| 8      | Air only                |
+| 9      | Sync _(not mapped yet)_ |
+| 10     | Max cool                |
 
 ---
 
@@ -71,20 +73,20 @@ After that, the listener starts automatically on reboot.
 
 ### Source structure
 
-| Path | Purpose |
-|------|---------|
-| `MainActivity.kt` | Home screen |
-| `ColorConfigActivity.kt` | Ambient + backlight |
-| `ButtonMappingActivity.kt` | Button config |
-| `dikey/DiKeySession.kt` | USB/BLE session |
-| `dikey/DiKeyClimateMapper.kt` | Climate controls |
-| `dikey/DiKeyUpMapper.kt` | App launcher |
-| `usb/DiKeyUsbBridge.kt` | USB serial |
-| `boot/DiKeyListenService.kt` | Background listener |
-| `adb/AdbPermissionManager.kt` | Grants + hidden-API |
-| `byd/Dilink5SdkInjector.kt` | OEM SDK loader |
-| `byd/BydAcController.kt` | Climate API |
-| `firmware/src/DiKeyUsbBridge/` | C3 bridge firmware |
+| Path                           | Purpose             |
+| ------------------------------ | ------------------- |
+| `MainActivity.kt`              | Home screen         |
+| `ColorConfigActivity.kt`       | Ambient + backlight |
+| `ButtonMappingActivity.kt`     | Button config       |
+| `dikey/DiKeySession.kt`        | USB/BLE session     |
+| `dikey/DiKeyClimateMapper.kt`  | Climate controls    |
+| `dikey/DiKeyUpMapper.kt`       | App launcher        |
+| `usb/DiKeyUsbBridge.kt`        | USB serial          |
+| `boot/DiKeyListenService.kt`   | Background listener |
+| `adb/AdbPermissionManager.kt`  | Grants + hidden-API |
+| `byd/Dilink5SdkInjector.kt`    | OEM SDK loader      |
+| `byd/BydAcController.kt`       | Climate API         |
+| `firmware/src/DiKeyUsbBridge/` | C3 bridge firmware  |
 
 ### Assets
 
