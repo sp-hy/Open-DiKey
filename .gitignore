@@ -12,6 +12,8 @@
 /captures
 .externalNativeBuild
 .cxx
+.kotlin/
+.tmp/
 local.properties
 /ref
 
