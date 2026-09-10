@@ -32,7 +32,14 @@ Other vehicles are untested.
 
 **1. Flash the USB bridge**
 
-On a PC in Chrome or Edge, download `dikey-usb-bridge-c3.bin` from the [latest release](https://github.com/sp-hy/Open-DiKey/releases) and flash it onto the C3 board using **[ESP Web Flasher](https://esp.huhn.me/)**. If the board doesn't show up, hold **BOOT**, tap **RST**, and try again.
+On a PC in Chrome or Edge, download `dikey-usb-bridge-c3.bin` from the [latest release](https://github.com/sp-hy/Open-DiKey/releases), then open **[ESPWebTool](https://esptool.spacehuhn.com/)**:
+
+1. Delete every existing address slot (there will be about 4)
+2. Add a new slot at **`0x0`**
+3. Choose `dikey-usb-bridge-c3.bin`
+4. Connect, then Program
+
+If the board doesn't show up, hold **BOOT** while plugging it in.
 
 **2. Install the app**
 
