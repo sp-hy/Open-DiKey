@@ -43,7 +43,7 @@ It should look like this before clicking Program:
 
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/1a431a46-d842-4cae-9d60-45c0a3e60526" />
 
-5. Program
+Then click Program.
 
 **2. Install the app**
 
