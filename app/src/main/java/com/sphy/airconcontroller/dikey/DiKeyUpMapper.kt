@@ -8,6 +8,7 @@ import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import com.sphy.airconcontroller.adb.AdbPermissionManager
+import com.sphy.airconcontroller.byd.BydSeatController
 import com.sphy.airconcontroller.storage.AppSettings
 import com.sphy.airconcontroller.storage.ButtonAction
 import com.sphy.airconcontroller.storage.toAmCommand
@@ -15,12 +16,13 @@ import com.sphy.airconcontroller.storage.toAndroidIntent
 import java.util.concurrent.Executors
 
 /**
- * Remapped button / dial slots → open app or run Android Intent.
+ * Remapped button / dial slots → open app, Intent, or seat heat/vent cycle.
  * Climate defaults stay in [DiKeyClimateMapper] when a press has no mapping.
  */
 class DiKeyUpMapper(
     private val app: Context,
     private val settings: AppSettings,
+    private val seats: BydSeatController,
     private val onLog: (String) -> Unit
 ) {
     private val main = Handler(Looper.getMainLooper())
@@ -52,6 +54,27 @@ class DiKeyUpMapper(
         when (mapping) {
             is ButtonAction.OpenApp -> launchApp(tag, mapping)
             is ButtonAction.RunIntent -> runIntent(tag, mapping)
+            is ButtonAction.SeatCycle -> runSeat(tag, mapping)
+        }
+    }
+
+    private fun runSeat(tag: String, mapping: ButtonAction.SeatCycle) {
+        io.execute {
+            val zone = when (mapping.zone) {
+                ButtonAction.SeatCycle.Zone.DRIVER -> BydSeatController.Zone.DRIVER
+                ButtonAction.SeatCycle.Zone.PASSENGER -> BydSeatController.Zone.PASSENGER
+            }
+            val result = when (mapping.kind) {
+                ButtonAction.SeatCycle.Kind.HEAT -> seats.cycleHeating(zone)
+                ButtonAction.SeatCycle.Kind.VENT -> seats.cycleVentilation(zone)
+            }
+            main.post {
+                if (result.success) {
+                    onLog("Map · $tag · ${mapping.label} · ${result.detail}")
+                } else {
+                    onLog("Map · $tag · ${mapping.label} failed: ${result.detail}")
+                }
+            }
         }
     }
 

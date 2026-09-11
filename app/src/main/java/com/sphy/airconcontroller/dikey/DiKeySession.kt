@@ -17,6 +17,7 @@ import com.sphy.airconcontroller.ble.BleScanner
 import com.sphy.airconcontroller.ble.BtTransport
 import com.sphy.airconcontroller.ble.ScannedBleDevice
 import com.sphy.airconcontroller.byd.BydAcController
+import com.sphy.airconcontroller.byd.BydSeatController
 import com.sphy.airconcontroller.storage.AppSettings
 import com.sphy.airconcontroller.usb.DiKeyUsbBridge
 import com.sphy.airconcontroller.usb.UsbHostSerial
@@ -96,6 +97,7 @@ class DiKeySession(private val app: Context) {
         upMapper = DiKeyUpMapper(
             app = app,
             settings = settings,
+            seats = BydSeatController(app),
             onLog = { emitLog(it) }
         )
         bleClient = DiKeyBleClient(context = app, controller = controller)

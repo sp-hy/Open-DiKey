@@ -129,7 +129,8 @@ class ButtonMappingActivity : OpenDiKeyActivity() {
                 openAppFmt = { getString(R.string.map_slot_open_app_fmt, it) },
                 openAppMissingFmt = { getString(R.string.map_slot_open_app_missing_fmt, it) },
                 intentFmt = { getString(R.string.map_slot_intent_fmt, it) },
-                broadcastFmt = { getString(R.string.map_slot_broadcast_fmt, it) }
+                broadcastFmt = { getString(R.string.map_slot_broadcast_fmt, it) },
+                seatFmt = { getString(R.string.map_slot_seat_fmt, it) }
             )
             return getString(R.string.button_mapping_slot_fmt, title, action)
         }
@@ -178,7 +179,8 @@ class ButtonMappingActivity : OpenDiKeyActivity() {
                 openAppFmt = { getString(R.string.map_slot_open_app_fmt, it) },
                 openAppMissingFmt = { getString(R.string.map_slot_open_app_missing_fmt, it) },
                 intentFmt = { getString(R.string.map_slot_intent_fmt, it) },
-                broadcastFmt = { getString(R.string.map_slot_broadcast_fmt, it) }
+                broadcastFmt = { getString(R.string.map_slot_broadcast_fmt, it) },
+                seatFmt = { getString(R.string.map_slot_seat_fmt, it) }
             )
             return getString(R.string.button_mapping_slot_fmt, title, action)
         }

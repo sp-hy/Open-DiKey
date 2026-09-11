@@ -10,6 +10,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.snackbar.Snackbar
 import com.sphy.airconcontroller.adb.AdbPermissionManager
 import com.sphy.airconcontroller.byd.BydAcController
+import com.sphy.airconcontroller.byd.BydSeatController
 import com.sphy.airconcontroller.ui.OpenDiKeyActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -19,6 +20,7 @@ import java.io.File
 /** Vehicle climate API test controls. */
 class ClimateTestActivity : OpenDiKeyActivity() {
     private lateinit var ac: BydAcController
+    private lateinit var seats: BydSeatController
     private lateinit var acStatusText: TextView
     private lateinit var lastResultText: TextView
     private lateinit var dumpText: TextView
@@ -30,6 +32,7 @@ class ClimateTestActivity : OpenDiKeyActivity() {
         title = getString(R.string.climate_title)
 
         ac = BydAcController(this)
+        seats = BydSeatController(this)
         acStatusText = findViewById(R.id.acStatusText)
         lastResultText = findViewById(R.id.lastResultText)
         dumpText = findViewById(R.id.dumpText)
@@ -50,6 +53,22 @@ class ClimateTestActivity : OpenDiKeyActivity() {
         findViewById<Button>(R.id.rearDemistButton).setOnClickListener { runAc("Rear window and mirrors") { ac.toggleRearWindowHeat() } }
         findViewById<Button>(R.id.airOnlyButton).setOnClickListener { runAc("Air only") { ac.toggleAirOnly() } }
         findViewById<Button>(R.id.maxCoolButton).setOnClickListener { runAc("Max cooling") { ac.setMaxCool(true) } }
+        findViewById<Button>(R.id.seatHeatDriverButton).setOnClickListener {
+            Log.i(SEAT_TAG, "Driver heat clicked")
+            runSeat("Driver heat") { seats.cycleHeating(BydSeatController.Zone.DRIVER) }
+        }
+        findViewById<Button>(R.id.seatVentDriverButton).setOnClickListener {
+            Log.i(SEAT_TAG, "Driver cool clicked")
+            runSeat("Driver cool") { seats.cycleVentilation(BydSeatController.Zone.DRIVER) }
+        }
+        findViewById<Button>(R.id.seatHeatPassengerButton).setOnClickListener {
+            Log.i(SEAT_TAG, "Passenger heat clicked")
+            runSeat("Passenger heat") { seats.cycleHeating(BydSeatController.Zone.PASSENGER) }
+        }
+        findViewById<Button>(R.id.seatVentPassengerButton).setOnClickListener {
+            Log.i(SEAT_TAG, "Passenger cool clicked")
+            runSeat("Passenger cool") { seats.cycleVentilation(BydSeatController.Zone.PASSENGER) }
+        }
         findViewById<Button>(R.id.dumpMethodsButton).setOnClickListener {
             lifecycleScope.launch {
                 val dump = withContext(Dispatchers.IO) { ac.dumpMethods() }
@@ -77,26 +96,54 @@ class ClimateTestActivity : OpenDiKeyActivity() {
     private fun runAc(label: String, action: () -> BydAcController.CommandResult) {
         lifecycleScope.launch {
             val result = withContext(Dispatchers.IO) { action() }
-            lastResultText.text = getString(
-                R.string.last_result_fmt,
-                label,
-                result.method,
-                result.detail
-            )
-            val snack = if (result.success) {
-                getString(R.string.command_ok, label)
-            } else {
-                getString(R.string.command_fail, label, result.detail)
-            }
-            Snackbar.make(lastResultText, snack, Snackbar.LENGTH_LONG).show()
-            refreshStatus()
+            showResult(label, result.method, result.detail, result.success)
         }
+    }
+
+    private fun runSeat(label: String, action: () -> BydSeatController.CommandResult) {
+        lastResultText.text = getString(R.string.last_result_fmt, label, "…", "running")
+        lifecycleScope.launch {
+            Log.i(SEAT_TAG, "$label starting")
+            val result = try {
+                withContext(Dispatchers.IO) { action() }
+            } catch (t: Throwable) {
+                Log.e(SEAT_TAG, "$label crashed", t)
+                BydSeatController.CommandResult(
+                    false,
+                    "seat",
+                    null,
+                    "${t.javaClass.simpleName}: ${t.message}"
+                )
+            }
+            Log.i(SEAT_TAG, "$label → success=${result.success} ${result.method} ${result.detail}")
+            showResult(label, result.method, result.detail, result.success)
+        }
+    }
+
+    private fun showResult(label: String, method: String, detail: String, success: Boolean) {
+        lastResultText.text = getString(R.string.last_result_fmt, label, method, detail)
+        val snack = if (success) {
+            getString(R.string.command_ok, label)
+        } else {
+            getString(R.string.command_fail, label, detail)
+        }
+        Snackbar.make(lastResultText, snack, Snackbar.LENGTH_LONG).show()
+        refreshStatus()
     }
 
     private fun refreshStatus() {
         lifecycleScope.launch {
             val snap = withContext(Dispatchers.IO) { ac.snapshot() }
             acStatusText.text = snap.toDisplayString()
+            val seatLine = try {
+                withContext(Dispatchers.IO) { seats.statusLine() }
+            } catch (t: Throwable) {
+                Log.w(SEAT_TAG, "statusLine", t)
+                "Seat: error (${t.message})"
+            }
+            if (seatLine.isNotBlank()) {
+                acStatusText.append("\n$seatLine")
+            }
         }
     }
 
@@ -119,5 +166,6 @@ class ClimateTestActivity : OpenDiKeyActivity() {
 
     companion object {
         private const val DUMP_TAG = "BydAcDump"
+        private const val SEAT_TAG = "BydSeatController"
     }
 }

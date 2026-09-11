@@ -69,6 +69,8 @@ class MapActionActivity : OpenDiKeyActivity() {
         if (result.resultCode == RESULT_OK) finish()
     }
 
+    private var showingSeatMenu = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_map_event)
@@ -83,13 +85,17 @@ class MapActionActivity : OpenDiKeyActivity() {
             return
         }
 
-        findViewById<TextView>(R.id.mapEventTitle).setText(R.string.map_action_title)
-        findViewById<TextView>(R.id.mapEventSubtitle).text = subtitle()
-
         findViewById<android.widget.ImageButton>(R.id.mapEventBackButton).setOnClickListener {
-            finish()
+            if (showingSeatMenu) showMainOptions() else finish()
         }
 
+        showMainOptions()
+    }
+
+    private fun showMainOptions() {
+        showingSeatMenu = false
+        findViewById<TextView>(R.id.mapEventTitle).setText(R.string.map_action_title)
+        findViewById<TextView>(R.id.mapEventSubtitle).text = subtitle()
         val options = buildList {
             if (currentMapping() != null) {
                 add(
@@ -121,7 +127,48 @@ class MapActionActivity : OpenDiKeyActivity() {
                     subtitle = getString(R.string.map_event_run_intent_hint)
                 )
             )
+            add(
+                ActionOption(
+                    id = ACTION_SEAT,
+                    title = getString(R.string.map_event_seat),
+                    subtitle = getString(R.string.map_event_seat_hint)
+                )
+            )
         }
+        showOptions(options)
+    }
+
+    private fun showSeatOptions() {
+        showingSeatMenu = true
+        findViewById<TextView>(R.id.mapEventTitle).setText(R.string.map_event_seat)
+        findViewById<TextView>(R.id.mapEventSubtitle).text = getString(R.string.map_event_seat_pick_hint)
+        showOptions(
+            listOf(
+                ActionOption(
+                    id = ACTION_SEAT_HEAT,
+                    title = getString(R.string.map_event_seat_heat),
+                    subtitle = getString(R.string.map_event_seat_heat_hint)
+                ),
+                ActionOption(
+                    id = ACTION_SEAT_VENT,
+                    title = getString(R.string.map_event_seat_vent),
+                    subtitle = getString(R.string.map_event_seat_vent_hint)
+                ),
+                ActionOption(
+                    id = ACTION_SEAT_HEAT_PASS,
+                    title = getString(R.string.map_event_seat_heat_pass),
+                    subtitle = getString(R.string.map_event_seat_heat_pass_hint)
+                ),
+                ActionOption(
+                    id = ACTION_SEAT_VENT_PASS,
+                    title = getString(R.string.map_event_seat_vent_pass),
+                    subtitle = getString(R.string.map_event_seat_vent_pass_hint)
+                )
+            )
+        )
+    }
+
+    private fun showOptions(options: List<ActionOption>) {
         val adapter = ActionAdapter(options)
         val list = findViewById<ListView>(R.id.mapEventList)
         list.adapter = adapter
@@ -134,8 +181,52 @@ class MapActionActivity : OpenDiKeyActivity() {
                 ACTION_OPEN_APP -> pickApp.launch(appPickerIntent())
                 ACTION_SYSTEM -> pickAction.launch(systemPickerIntent())
                 ACTION_INTENT -> editIntent.launch(intentEditorIntent())
+                ACTION_SEAT -> showSeatOptions()
+                ACTION_SEAT_HEAT -> {
+                    saveSeat(
+                        ButtonAction.SeatCycle.Kind.HEAT,
+                        ButtonAction.SeatCycle.Zone.DRIVER,
+                        getString(R.string.map_event_seat_heat)
+                    )
+                    finish()
+                }
+                ACTION_SEAT_VENT -> {
+                    saveSeat(
+                        ButtonAction.SeatCycle.Kind.VENT,
+                        ButtonAction.SeatCycle.Zone.DRIVER,
+                        getString(R.string.map_event_seat_vent)
+                    )
+                    finish()
+                }
+                ACTION_SEAT_HEAT_PASS -> {
+                    saveSeat(
+                        ButtonAction.SeatCycle.Kind.HEAT,
+                        ButtonAction.SeatCycle.Zone.PASSENGER,
+                        getString(R.string.map_event_seat_heat_pass)
+                    )
+                    finish()
+                }
+                ACTION_SEAT_VENT_PASS -> {
+                    saveSeat(
+                        ButtonAction.SeatCycle.Kind.VENT,
+                        ButtonAction.SeatCycle.Zone.PASSENGER,
+                        getString(R.string.map_event_seat_vent_pass)
+                    )
+                    finish()
+                }
             }
         }
+    }
+
+    private fun saveSeat(
+        kind: ButtonAction.SeatCycle.Kind,
+        zone: ButtonAction.SeatCycle.Zone,
+        label: String
+    ) {
+        val action = ButtonAction.SeatCycle(kind, zone, label)
+        val dial = dialSlot
+        if (dial != null) settings.setDialAction(dial, action)
+        else settings.setButtonAction(buttonId, buttonSlot, action)
     }
 
     private fun subtitle(): String {
@@ -188,6 +279,11 @@ class MapActionActivity : OpenDiKeyActivity() {
         private const val ACTION_OPEN_APP = "open_app"
         private const val ACTION_SYSTEM = "system_action"
         private const val ACTION_INTENT = "run_intent"
+        private const val ACTION_SEAT = "seat"
+        private const val ACTION_SEAT_HEAT = "seat_heat"
+        private const val ACTION_SEAT_VENT = "seat_vent"
+        private const val ACTION_SEAT_HEAT_PASS = "seat_heat_pass"
+        private const val ACTION_SEAT_VENT_PASS = "seat_vent_pass"
     }
 }
 

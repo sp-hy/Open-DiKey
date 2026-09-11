@@ -30,6 +30,32 @@ sealed class ButtonAction {
         }
     }
 
+    /** Cycle seat heat or vent: OEM 1/3 → 2/3 → 3/3 → 1/3. */
+    data class SeatCycle(
+        val kind: Kind,
+        val zone: Zone = Zone.DRIVER,
+        override val label: String
+    ) : ButtonAction() {
+        enum class Kind(val wire: String) {
+            HEAT("heat"),
+            VENT("vent");
+
+            companion object {
+                fun fromWire(raw: String): Kind? = entries.firstOrNull { it.wire == raw }
+            }
+        }
+
+        enum class Zone(val wire: String) {
+            DRIVER("driver"),
+            PASSENGER("passenger");
+
+            companion object {
+                fun fromWire(raw: String): Zone =
+                    entries.firstOrNull { it.wire == raw } ?: DRIVER
+            }
+        }
+    }
+
     fun toJson(): String {
         val o = JSONObject()
         when (this) {
@@ -48,6 +74,12 @@ sealed class ButtonAction {
                 o.put("packageName", packageName)
                 o.put("component", component)
             }
+            is SeatCycle -> {
+                o.put("type", TYPE_SEAT)
+                o.put("kind", kind.wire)
+                o.put("zone", zone.wire)
+                o.put("label", label)
+            }
         }
         return o.toString()
     }
@@ -55,6 +87,7 @@ sealed class ButtonAction {
     companion object {
         private const val TYPE_OPEN_APP = "open_app"
         private const val TYPE_INTENT = "intent"
+        private const val TYPE_SEAT = "seat_cycle"
 
         fun fromJson(raw: String?): ButtonAction? {
             if (raw.isNullOrBlank()) return null
@@ -75,6 +108,19 @@ sealed class ButtonAction {
                             mimeType = o.optString("mimeType"),
                             packageName = o.optString("packageName"),
                             component = o.optString("component")
+                        )
+                    }
+                    TYPE_SEAT -> {
+                        val kind = SeatCycle.Kind.fromWire(o.optString("kind")) ?: return null
+                        val zone = SeatCycle.Zone.fromWire(o.optString("zone"))
+                        SeatCycle(
+                            kind = kind,
+                            zone = zone,
+                            label = o.optString("label").ifBlank {
+                                val who = if (zone == SeatCycle.Zone.DRIVER) "Driver" else "Passenger"
+                                val what = if (kind == SeatCycle.Kind.HEAT) "heating" else "cooling"
+                                "$who seat $what"
+                            }
                         )
                     }
                     else -> null

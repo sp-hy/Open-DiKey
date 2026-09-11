@@ -9,7 +9,8 @@ fun formatButtonActionSummary(
     openAppFmt: (String) -> String,
     openAppMissingFmt: (String) -> String,
     intentFmt: (String) -> String,
-    broadcastFmt: (String) -> String
+    broadcastFmt: (String) -> String,
+    seatFmt: (String) -> String = { it }
 ): String = when (action) {
     is ButtonAction.OpenApp -> {
         val available = packageManager.getLaunchIntentForPackage(action.packageName) != null
@@ -22,4 +23,5 @@ fun formatButtonActionSummary(
             intentFmt(action.label)
         }
     }
+    is ButtonAction.SeatCycle -> seatFmt(action.label)
 }
