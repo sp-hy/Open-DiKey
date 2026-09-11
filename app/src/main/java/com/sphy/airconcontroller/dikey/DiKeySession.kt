@@ -245,19 +245,46 @@ class DiKeySession(private val app: Context) {
         if (rescan) startAutoScan(clearFirst = true)
     }
 
-    fun applyBarColor(bar: Int, red: Int, green: Int, blue: Int): Boolean {
-        val mode = settings.modeForBar(bar)
-        settings.saveStripApply(mode, bar, red, green, blue)
+    fun applyBarColor(bar: Int, red: Int, green: Int, blue: Int, mode: Int? = null): Boolean {
+        val m = mode ?: settings.modeForBar(bar)
+        settings.updateEditingBar(bar, m, red, green, blue)
+        if (settings.editingLightingPeriod != settings.liveLightingPeriod()) {
+            return true
+        }
         controller.seedLedMemory(settings.ledRestoreSnapshot())
         if (!controller.isConnected) return false
-        return controller.sendLed(mode, bar, red, green, blue)
+        return controller.sendLed(m, bar, red, green, blue)
     }
 
     fun applyBacklight(red: Int, green: Int, blue: Int): Boolean {
-        settings.saveBacklight(red, green, blue)
+        settings.updateEditingBacklight(red, green, blue)
+        if (settings.editingLightingPeriod != settings.liveLightingPeriod()) {
+            return true
+        }
         controller.seedLedMemory(settings.ledRestoreSnapshot())
         if (!controller.isConnected) return false
         return controller.sendButtonBacklight(red, green, blue)
+    }
+
+    fun applyLightingPeriod(period: com.sphy.airconcontroller.lighting.LightingPeriod): Boolean {
+        settings.applyProfileToLive(period)
+        val snapshot = settings.ledRestoreSnapshot()
+        controller.seedLedMemory(snapshot)
+        if (!controller.isConnected) return false
+        var ok = true
+        for ((bar, state) in snapshot.bars) {
+            ok = controller.sendLed(
+                state.mode,
+                bar,
+                state.color.red,
+                state.color.green,
+                state.color.blue
+            ) && ok
+        }
+        snapshot.backlight?.let { bl ->
+            ok = controller.sendButtonBacklight(bl.red, bl.green, bl.blue) && ok
+        }
+        return ok
     }
 
     fun seedFromSettings() {

@@ -44,6 +44,7 @@ class ClimateTestActivity : OpenDiKeyActivity() {
         findViewById<Button>(R.id.fanDownButton).setOnClickListener { runAc("Fan speed −") { ac.nudgeFan(-1) } }
         findViewById<Button>(R.id.fanUpButton).setOnClickListener { runAc("Fan speed +") { ac.nudgeFan(1) } }
         findViewById<Button>(R.id.autoButton).setOnClickListener { runAc("Auto mode") { ac.toggleAuto() } }
+        findViewById<Button>(R.id.syncButton).setOnClickListener { runAc("Temp sync") { ac.toggleSync() } }
         findViewById<Button>(R.id.recircButton).setOnClickListener { runAc("Recirculate / fresh air") { ac.toggleRecirc() } }
         findViewById<Button>(R.id.frontDemistButton).setOnClickListener { runAc("Front demist") { ac.toggleFrontDefrost() } }
         findViewById<Button>(R.id.rearDemistButton).setOnClickListener { runAc("Rear window and mirrors") { ac.toggleRearWindowHeat() } }

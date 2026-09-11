@@ -1,11 +1,12 @@
 package com.sphy.airconcontroller.storage
 
 import android.content.Context
+import com.sphy.airconcontroller.dikey.ButtonMapSlot
 import com.sphy.airconcontroller.dikey.DialDisplayType
+import com.sphy.airconcontroller.dikey.DialMapSlot
 import com.sphy.airconcontroller.dikey.LedMode
 import com.sphy.airconcontroller.dikey.LedPosition
-
-data class UpOpenApp(val packageName: String, val label: String)
+import com.sphy.airconcontroller.lighting.LightingPeriod
 
 data class LedRgb(val red: Int, val green: Int, val blue: Int) {
     fun clamped(): LedRgb = LedRgb(
@@ -155,34 +156,102 @@ class AppSettings(context: Context) {
         dikeyLedBlue = color.blue
     }
 
-    fun upOpenApp(buttonId: Int): UpOpenApp? {
-        val pkg = prefs.getString(upPkgKey(buttonId), null)?.takeIf { it.isNotBlank() } ?: return null
-        val label = prefs.getString(upLabelKey(buttonId), null)?.takeIf { it.isNotBlank() } ?: pkg
-        return UpOpenApp(pkg, label)
+    fun buttonAction(buttonId: Int, slot: ButtonMapSlot): ButtonAction? {
+        if (!slot.remappable) {
+            clearButtonAction(buttonId, slot)
+            return null
+        }
+        migrateLegacyUpMapping(buttonId)
+        migrateLegacyOpenApp(buttonId, slot)
+        return ButtonAction.fromJson(prefs.getString(slotActionKey(buttonId, slot), null))
     }
 
-    fun setUpOpenApp(buttonId: Int, packageName: String, label: String) {
+    fun setButtonAction(buttonId: Int, slot: ButtonMapSlot, action: ButtonAction) {
+        if (!slot.remappable) return
+        migrateLegacyUpMapping(buttonId)
         prefs.edit()
-            .putString(upPkgKey(buttonId), packageName)
-            .putString(upLabelKey(buttonId), label)
+            .putString(slotActionKey(buttonId, slot), action.toJson())
+            .remove(slotPkgKey(buttonId, slot))
+            .remove(slotLabelKey(buttonId, slot))
             .apply()
     }
 
-    fun clearUpOpenApp(buttonId: Int) {
+    fun clearButtonAction(buttonId: Int, slot: ButtonMapSlot) {
+        migrateLegacyUpMapping(buttonId)
         prefs.edit()
-            .remove(upPkgKey(buttonId))
-            .remove(upLabelKey(buttonId))
+            .remove(slotActionKey(buttonId, slot))
+            .remove(slotPkgKey(buttonId, slot))
+            .remove(slotLabelKey(buttonId, slot))
+            .apply()
+    }
+
+    /** @deprecated Use [buttonAction]; open-app-only helper for older call sites. */
+    fun openApp(buttonId: Int, slot: ButtonMapSlot): ButtonAction.OpenApp? =
+        buttonAction(buttonId, slot) as? ButtonAction.OpenApp
+
+    fun setOpenApp(buttonId: Int, slot: ButtonMapSlot, packageName: String, label: String) {
+        setButtonAction(buttonId, slot, ButtonAction.OpenApp(packageName, label))
+    }
+
+    fun clearOpenApp(buttonId: Int, slot: ButtonMapSlot) = clearButtonAction(buttonId, slot)
+
+    fun dialAction(slot: DialMapSlot): ButtonAction? {
+        if (!slot.remappable) {
+            clearDialAction(slot)
+            return null
+        }
+        return ButtonAction.fromJson(prefs.getString(dialActionKey(slot), null))
+    }
+
+    fun setDialAction(slot: DialMapSlot, action: ButtonAction) {
+        if (!slot.remappable) return
+        prefs.edit().putString(dialActionKey(slot), action.toJson()).apply()
+    }
+
+    fun clearDialAction(slot: DialMapSlot) {
+        prefs.edit().remove(dialActionKey(slot)).apply()
+    }
+
+    /** Old prefs stored only upward click as `dikey_up_btnN_*`. */
+    private fun migrateLegacyUpMapping(buttonId: Int) {
+        val legacyPkg = prefs.getString(upPkgKey(buttonId), null)?.takeIf { it.isNotBlank() } ?: return
+        val slot = ButtonMapSlot.UP_CLICK
+        if (prefs.getString(slotActionKey(buttonId, slot), null).isNullOrBlank() &&
+            prefs.getString(slotPkgKey(buttonId, slot), null).isNullOrBlank()
+        ) {
+            val label = prefs.getString(upLabelKey(buttonId), null)?.takeIf { it.isNotBlank() } ?: legacyPkg
+            prefs.edit()
+                .putString(slotActionKey(buttonId, slot), ButtonAction.OpenApp(legacyPkg, label).toJson())
+                .remove(upPkgKey(buttonId))
+                .remove(upLabelKey(buttonId))
+                .apply()
+        } else {
+            prefs.edit().remove(upPkgKey(buttonId)).remove(upLabelKey(buttonId)).apply()
+        }
+    }
+
+    /** Migrate pre-JSON open-app pkg/label keys into a single action blob. */
+    private fun migrateLegacyOpenApp(buttonId: Int, slot: ButtonMapSlot) {
+        if (!prefs.getString(slotActionKey(buttonId, slot), null).isNullOrBlank()) return
+        val pkg = prefs.getString(slotPkgKey(buttonId, slot), null)?.takeIf { it.isNotBlank() } ?: return
+        val label = prefs.getString(slotLabelKey(buttonId, slot), null)?.takeIf { it.isNotBlank() } ?: pkg
+        prefs.edit()
+            .putString(slotActionKey(buttonId, slot), ButtonAction.OpenApp(pkg, label).toJson())
+            .remove(slotPkgKey(buttonId, slot))
+            .remove(slotLabelKey(buttonId, slot))
             .apply()
     }
 
     fun colorForBar(bar: Int): LedRgb =
-        getBar(bar)?.color ?: LedRgb(dikeyLedRed, dikeyLedGreen, dikeyLedBlue).clamped()
+        editingBar(bar)?.color ?: LedRgb(dikeyLedRed, dikeyLedGreen, dikeyLedBlue).clamped()
 
     fun modeForBar(bar: Int): Int =
-        getBar(bar)?.mode ?: dikeyLedModeCode
+        editingBar(bar)?.mode ?: dikeyLedModeCode
 
-    fun colorForBacklight(): LedRgb =
-        if (prefs.getBoolean(KEY_DIKEY_BL_SET, false)) {
+    fun colorForBacklight(): LedRgb {
+        val fromProfile = lightingProfile(editingLightingPeriod).backlight
+        if (fromProfile != null) return fromProfile
+        return if (prefs.getBoolean(KEY_DIKEY_BL_SET, false)) {
             LedRgb(
                 prefs.getInt(KEY_DIKEY_BL_R, 0),
                 prefs.getInt(KEY_DIKEY_BL_G, 0),
@@ -191,8 +260,81 @@ class AppSettings(context: Context) {
         } else {
             LedRgb(0, 0, 80)
         }
+    }
+
+    private fun editingBar(bar: Int): LedBarState? =
+        lightingProfile(editingLightingPeriod).bars[bar]
+
+    var editingLightingPeriod: LightingPeriod
+        get() = if (prefs.getString(KEY_LIGHTING_EDIT, LightingPeriod.DAY.name) == LightingPeriod.NIGHT.name) {
+            LightingPeriod.NIGHT
+        } else {
+            LightingPeriod.DAY
+        }
+        set(value) {
+            prefs.edit().putString(KEY_LIGHTING_EDIT, value.name).apply()
+        }
+
+    /** Profile currently applied on the device (from ambient light). */
+    fun liveLightingPeriod(): LightingPeriod =
+        com.sphy.airconcontroller.lighting.LightingScheduler.currentPeriod()
+            ?: editingLightingPeriod
+    fun lightingProfile(period: LightingPeriod): LightingProfile {
+        ensureLightingProfiles()
+        val key = if (period == LightingPeriod.DAY) KEY_PROFILE_DAY else KEY_PROFILE_NIGHT
+        return LightingProfile.fromJson(prefs.getString(key, null))
+            ?: LightingProfile.fromLive(ledRestoreSnapshotLiveOnly())
+    }
+
+    fun saveLightingProfile(period: LightingPeriod, profile: LightingProfile) {
+        val key = if (period == LightingPeriod.DAY) KEY_PROFILE_DAY else KEY_PROFILE_NIGHT
+        prefs.edit().putString(key, profile.toJson()).apply()
+    }
+
+    fun updateEditingBar(bar: Int, mode: Int, red: Int, green: Int, blue: Int) {
+        val period = editingLightingPeriod
+        val current = lightingProfile(period)
+        val nextBars = current.bars.toMutableMap()
+        nextBars[bar] = LedBarState(mode, LedRgb(red, green, blue).clamped())
+        saveLightingProfile(period, current.copy(bars = nextBars))
+        if (period == liveLightingPeriod()) {
+            saveStripApply(mode, bar, red, green, blue)
+        }
+    }
+
+    fun updateEditingBacklight(red: Int, green: Int, blue: Int) {
+        val period = editingLightingPeriod
+        val current = lightingProfile(period)
+        val color = LedRgb(red, green, blue).clamped()
+        saveLightingProfile(period, current.copy(backlight = color))
+        if (period == liveLightingPeriod()) {
+            saveBacklight(red, green, blue)
+        }
+    }
+
+    /** Push a stored profile into the live reconnect snapshot. */
+    fun applyProfileToLive(period: LightingPeriod) {
+        val profile = lightingProfile(period)
+        for (bar in 1..3) {
+            val state = profile.bars[bar] ?: continue
+            putBar(bar, state)
+        }
+        val bl = profile.backlight
+        if (bl != null) {
+            saveBacklight(bl.red, bl.green, bl.blue)
+        }
+    }
 
     fun ledRestoreSnapshot(): LedRestoreSnapshot {
+        ensureLightingProfiles()
+        val profile = lightingProfile(liveLightingPeriod())
+        return LedRestoreSnapshot(
+            bars = profile.bars.filterKeys { it in 1..3 },
+            backlight = profile.backlight
+        )
+    }
+
+    private fun ledRestoreSnapshotLiveOnly(): LedRestoreSnapshot {
         val bars = linkedMapOf<Int, LedBarState>()
         for (bar in 1..3) {
             getBar(bar)?.let { bars[bar] = it }
@@ -222,6 +364,18 @@ class AppSettings(context: Context) {
         return LedRestoreSnapshot(bars, backlight)
     }
 
+    private fun ensureLightingProfiles() {
+        if (prefs.contains(KEY_PROFILE_DAY) && prefs.contains(KEY_PROFILE_NIGHT)) return
+        val edit = prefs.edit()
+        if (!prefs.contains(KEY_PROFILE_DAY)) {
+            edit.putString(KEY_PROFILE_DAY, LightingProfile.defaultDay().toJson())
+        }
+        if (!prefs.contains(KEY_PROFILE_NIGHT)) {
+            edit.putString(KEY_PROFILE_NIGHT, LightingProfile.defaultNight().toJson())
+        }
+        edit.apply()
+    }
+
     private fun getBar(bar: Int): LedBarState? {
         if (!prefs.contains(barModeKey(bar))) return null
         return LedBarState(
@@ -248,6 +402,18 @@ class AppSettings(context: Context) {
     private fun barRKey(bar: Int) = "dikey_led_bar${bar}_r"
     private fun barGKey(bar: Int) = "dikey_led_bar${bar}_g"
     private fun barBKey(bar: Int) = "dikey_led_bar${bar}_b"
+    private fun slotActionKey(buttonId: Int, slot: ButtonMapSlot) =
+        "dikey_map_btn${buttonId}_${slot.storageKey}_action"
+
+    private fun slotPkgKey(buttonId: Int, slot: ButtonMapSlot) =
+        "dikey_map_btn${buttonId}_${slot.storageKey}_pkg"
+
+    private fun slotLabelKey(buttonId: Int, slot: ButtonMapSlot) =
+        "dikey_map_btn${buttonId}_${slot.storageKey}_label"
+
+    private fun dialActionKey(slot: DialMapSlot) =
+        "dikey_map_dial_${slot.storageKey}_action"
+
     private fun upPkgKey(buttonId: Int) = "dikey_up_btn${buttonId}_pkg"
     private fun upLabelKey(buttonId: Int) = "dikey_up_btn${buttonId}_label"
 
@@ -268,5 +434,8 @@ class AppSettings(context: Context) {
         private const val KEY_DIKEY_BL_R = "dikey_bl_r"
         private const val KEY_DIKEY_BL_G = "dikey_bl_g"
         private const val KEY_DIKEY_BL_B = "dikey_bl_b"
+        private const val KEY_LIGHTING_EDIT = "lighting_edit_period"
+        private const val KEY_PROFILE_DAY = "lighting_profile_day"
+        private const val KEY_PROFILE_NIGHT = "lighting_profile_night"
     }
 }

@@ -4,6 +4,7 @@
   xmlns:tools="http://schemas.android.com/tools"
 >
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
@@ -42,6 +43,10 @@
   <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_COMMON" />
   <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_GET" />
   <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_SET" />
+  <uses-permission android:name="android.permission.BYDAUTO_SENSOR_COMMON" />
+  <uses-permission android:name="android.permission.BYDAUTO_SENSOR_GET" />
+  <uses-permission android:name="android.permission.BYDAUTO_LIGHT_COMMON" />
+  <uses-permission android:name="android.permission.BYDAUTO_LIGHT_GET" />
 
   <uses-feature android:name="android.hardware.usb.host" android:required="false" />
 
@@ -53,6 +58,20 @@
     <intent>
       <action android:name="android.intent.action.MAIN" />
       <category android:name="android.intent.category.LAUNCHER" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:scheme="https" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.VIEW" />
+      <data android:scheme="http" />
+    </intent>
+    <intent>
+      <action android:name="android.intent.action.DIAL" />
+    </intent>
+    <intent>
+      <action android:name="android.settings.SETTINGS" />
     </intent>
   </queries>
 
@@ -99,9 +118,25 @@
       android:parentActivityName=".ButtonMappingActivity"
       android:theme="@style/Theme.OpenDiKey" />
     <activity
-      android:name=".AppPickerActivity"
+      android:name=".MapActionActivity"
       android:exported="false"
       android:parentActivityName=".MapEventActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
+      android:name=".IntentEditorActivity"
+      android:exported="false"
+      android:parentActivityName=".MapActionActivity"
+      android:theme="@style/Theme.OpenDiKey"
+      android:windowSoftInputMode="adjustResize" />
+    <activity
+      android:name=".ActionPickerActivity"
+      android:exported="false"
+      android:parentActivityName=".MapActionActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
+      android:name=".AppPickerActivity"
+      android:exported="false"
+      android:parentActivityName=".MapActionActivity"
       android:theme="@style/Theme.OpenDiKey" />
     <activity
       android:name=".SettingsHubActivity"
@@ -137,6 +172,13 @@
         <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
         <action android:name="android.intent.action.QUICKBOOT_POWERON" />
         <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+      </intent-filter>
+    </receiver>
+    <receiver
+      android:name=".lighting.LightingAlarmReceiver"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="com.sphy.airconcontroller.action.LIGHTING_SWITCH" />
       </intent-filter>
     </receiver>
     <service

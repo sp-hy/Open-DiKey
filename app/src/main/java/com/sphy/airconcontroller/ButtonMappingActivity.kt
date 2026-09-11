@@ -8,8 +8,10 @@ import android.widget.TextView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.sphy.airconcontroller.dikey.ButtonMapSlot
 import com.sphy.airconcontroller.dikey.DiKeyButtonCatalog
 import com.sphy.airconcontroller.dikey.DiKeySession
+import com.sphy.airconcontroller.dikey.DialMapSlot
 import com.sphy.airconcontroller.storage.AppSettings
 import com.sphy.airconcontroller.ui.OpenDiKeyActivity
 import kotlinx.coroutines.launch
@@ -18,6 +20,10 @@ class ButtonMappingActivity : OpenDiKeyActivity() {
     private lateinit var session: DiKeySession
     private lateinit var settings: AppSettings
     private lateinit var connStatus: TextView
+    private lateinit var dialLeftClick: TextView
+    private lateinit var dialLeftLong: TextView
+    private lateinit var dialRightClick: TextView
+    private lateinit var dialRightLong: TextView
     private val rows = arrayOfNulls<RowViews>(BUTTON_COUNT + 1)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,10 +33,16 @@ class ButtonMappingActivity : OpenDiKeyActivity() {
         session = OpenDiKeyApp.from(this).dikey
         settings = session.settings
         connStatus = findViewById(R.id.mappingConnStatus)
+        dialLeftClick = findViewById(R.id.mappingDialLeftClick)
+        dialLeftLong = findViewById(R.id.mappingDialLeftLong)
+        dialRightClick = findViewById(R.id.mappingDialRightClick)
+        dialRightLong = findViewById(R.id.mappingDialRightLong)
 
         findViewById<android.widget.ImageButton>(R.id.mappingBackButton).setOnClickListener {
             finish()
         }
+        findViewById<View>(R.id.mappingDialLeft).setOnClickListener { openDialLongMap("LEFT") }
+        findViewById<View>(R.id.mappingDialRight).setOnClickListener { openDialLongMap("RIGHT") }
 
         inflateRows()
 
@@ -43,6 +55,7 @@ class ButtonMappingActivity : OpenDiKeyActivity() {
 
     override fun onResume() {
         super.onResume()
+        bindDials()
         DiKeyButtonCatalog.ids.forEach { bindRow(it) }
     }
 
@@ -77,19 +90,12 @@ class ButtonMappingActivity : OpenDiKeyActivity() {
         val views = RowViews(
             title = view.findViewById(R.id.mappingButtonTitle),
             down = view.findViewById(R.id.mappingDownLabel),
+            downLong = view.findViewById(R.id.mappingDownLongLabel),
             up = view.findViewById(R.id.mappingUpLabel),
-            clear = view.findViewById(R.id.mappingClearButton)
+            upLong = view.findViewById(R.id.mappingUpLongLabel)
         )
         views.title.text = getString(R.string.button_n_fmt, buttonId)
-        views.down.text = getString(
-            R.string.button_mapping_down_fmt,
-            getString(DiKeyButtonCatalog.downLabelRes(buttonId))
-        )
         view.setOnClickListener { openEventMenu(buttonId) }
-        views.clear.setOnClickListener {
-            settings.clearUpOpenApp(buttonId)
-            bindRow(buttonId)
-        }
         rows[buttonId] = views
         bindRow(buttonId)
         return view
@@ -97,19 +103,37 @@ class ButtonMappingActivity : OpenDiKeyActivity() {
 
     private fun bindRow(buttonId: Int) {
         val views = rows[buttonId] ?: return
-        val mapping = settings.upOpenApp(buttonId)
-        if (mapping == null) {
-            views.up.text = getString(R.string.button_mapping_up_none)
-            views.clear.visibility = View.GONE
-            return
+        views.down.text = slotSummary(buttonId, ButtonMapSlot.DOWN_CLICK)
+        views.downLong.text = slotSummary(buttonId, ButtonMapSlot.DOWN_LONG)
+        views.up.text = slotSummary(buttonId, ButtonMapSlot.UP_CLICK)
+        views.upLong.text = slotSummary(buttonId, ButtonMapSlot.UP_LONG)
+    }
+
+    private fun slotSummary(buttonId: Int, slot: ButtonMapSlot): String {
+        val title = getString(slot.titleRes)
+        if (slot == ButtonMapSlot.DOWN_CLICK) {
+            return getString(
+                R.string.button_mapping_slot_fmt,
+                title,
+                getString(
+                    R.string.map_slot_climate_fmt,
+                    getString(DiKeyButtonCatalog.downLabelRes(buttonId))
+                )
+            )
         }
-        val available = packageManager.getLaunchIntentForPackage(mapping.packageName) != null
-        views.up.text = if (available) {
-            getString(R.string.button_mapping_up_app_fmt, mapping.label)
-        } else {
-            getString(R.string.button_mapping_up_missing_fmt, mapping.label)
+        val mapping = settings.buttonAction(buttonId, slot)
+        if (mapping != null) {
+            val action = formatButtonActionSummary(
+                packageManager = packageManager,
+                action = mapping,
+                openAppFmt = { getString(R.string.map_slot_open_app_fmt, it) },
+                openAppMissingFmt = { getString(R.string.map_slot_open_app_missing_fmt, it) },
+                intentFmt = { getString(R.string.map_slot_intent_fmt, it) },
+                broadcastFmt = { getString(R.string.map_slot_broadcast_fmt, it) }
+            )
+            return getString(R.string.button_mapping_slot_fmt, title, action)
         }
-        views.clear.visibility = View.VISIBLE
+        return getString(R.string.button_mapping_slot_fmt, title, getString(R.string.map_slot_none))
     }
 
     private fun openEventMenu(buttonId: Int) {
@@ -119,11 +143,54 @@ class ButtonMappingActivity : OpenDiKeyActivity() {
         )
     }
 
+    private fun openDialLongMap(side: String) {
+        val slot = DialMapSlot.longForSide(side)
+        startActivity(
+            Intent(this, MapActionActivity::class.java)
+                .putExtra(MapActionActivity.EXTRA_DIAL_SLOT, slot.storageKey)
+        )
+    }
+
+    private fun bindDials() {
+        dialLeftClick.text = dialSlotSummary(DialMapSlot.LEFT_CLICK)
+        dialLeftLong.text = dialSlotSummary(DialMapSlot.LEFT_LONG)
+        dialRightClick.text = dialSlotSummary(DialMapSlot.RIGHT_CLICK)
+        dialRightLong.text = dialSlotSummary(DialMapSlot.RIGHT_LONG)
+    }
+
+    private fun dialSlotSummary(slot: DialMapSlot): String {
+        val title = getString(slot.titleRes)
+        if (!slot.remappable) {
+            return getString(
+                R.string.button_mapping_slot_fmt,
+                title,
+                getString(
+                    R.string.map_slot_climate_fmt,
+                    getString(R.string.map_slot_dial_climate_default)
+                )
+            )
+        }
+        val mapping = settings.dialAction(slot)
+        if (mapping != null) {
+            val action = formatButtonActionSummary(
+                packageManager = packageManager,
+                action = mapping,
+                openAppFmt = { getString(R.string.map_slot_open_app_fmt, it) },
+                openAppMissingFmt = { getString(R.string.map_slot_open_app_missing_fmt, it) },
+                intentFmt = { getString(R.string.map_slot_intent_fmt, it) },
+                broadcastFmt = { getString(R.string.map_slot_broadcast_fmt, it) }
+            )
+            return getString(R.string.button_mapping_slot_fmt, title, action)
+        }
+        return getString(R.string.button_mapping_slot_fmt, title, getString(R.string.map_slot_none))
+    }
+
     private class RowViews(
         val title: TextView,
         val down: TextView,
+        val downLong: TextView,
         val up: TextView,
-        val clear: TextView
+        val upLong: TextView
     )
 
     companion object {

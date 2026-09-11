@@ -69,57 +69,119 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:background="@drawable/bg_feature_tile"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/button_mapping_defaults_title"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                    android:textColor="@color/text_primary"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:text="@string/button_mapping_defaults_body"
+                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                    android:textColor="@color/text_muted" />
+            </LinearLayout>
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="18dp"
+                android:layout_marginBottom="10dp"
+                android:text="@string/button_mapping_dials_section"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
                 android:orientation="horizontal">
 
                 <LinearLayout
+                    android:id="@+id/mappingDialLeft"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_marginEnd="12dp"
                     android:layout_weight="1"
                     android:background="@drawable/bg_feature_tile"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     android:orientation="vertical"
                     android:padding="16dp">
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/button_mapping_defaults_title"
+                        android:text="@string/dial_left"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/mappingDialLeftClick"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="@string/button_mapping_defaults_body"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                        android:textColor="@color/text_muted" />
+                        android:textColor="@color/text_muted"
+                        tools:text="Click · Climate · temp / fan" />
+
+                    <TextView
+                        android:id="@+id/mappingDialLeftLong"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                        android:textColor="@color/text_primary"
+                        tools:text="Long · not mapped" />
                 </LinearLayout>
 
                 <LinearLayout
+                    android:id="@+id/mappingDialRight"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:background="@drawable/bg_feature_tile"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:foreground="?attr/selectableItemBackground"
                     android:orientation="vertical"
                     android:padding="16dp">
 
                     <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/button_mapping_dials_title"
+                        android:text="@string/dial_right"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle1"
                         android:textColor="@color/text_primary"
                         android:textStyle="bold" />
 
                     <TextView
+                        android:id="@+id/mappingDialRightClick"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="8dp"
-                        android:text="@string/button_mapping_dials_body"
                         android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                        android:textColor="@color/text_muted" />
+                        android:textColor="@color/text_muted"
+                        tools:text="Click · Climate · temp / fan" />
+
+                    <TextView
+                        android:id="@+id/mappingDialRightLong"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                        android:textColor="@color/text_primary"
+                        tools:text="Long · not mapped" />
                 </LinearLayout>
             </LinearLayout>
 

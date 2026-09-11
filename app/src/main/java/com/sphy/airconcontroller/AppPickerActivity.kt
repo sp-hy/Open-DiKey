@@ -12,7 +12,9 @@ import android.widget.TextView
 import androidx.lifecycle.lifecycleScope
 import com.sphy.airconcontroller.apps.LaunchableApp
 import com.sphy.airconcontroller.apps.LaunchableApps
+import com.sphy.airconcontroller.dikey.ButtonMapSlot
 import com.sphy.airconcontroller.dikey.DiKeyButtonCatalog
+import com.sphy.airconcontroller.dikey.DialMapSlot
 import com.sphy.airconcontroller.ui.OpenDiKeyActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -21,17 +23,28 @@ import kotlinx.coroutines.withContext
 class AppPickerActivity : OpenDiKeyActivity() {
     private val adapter = AppPickAdapter()
     private var buttonId: Int = 0
+    private var dialSlot: DialMapSlot? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app_picker)
 
         buttonId = intent.getIntExtra(EXTRA_BUTTON_ID, 0)
+        dialSlot = DialMapSlot.fromStorageKey(intent.getStringExtra(EXTRA_DIAL_SLOT).orEmpty())
+        val slotKey = intent.getStringExtra(EXTRA_SLOT)
+        val slot = ButtonMapSlot.fromStorageKey(slotKey.orEmpty())
         val subtitle = findViewById<TextView>(R.id.pickerSubtitle)
-        subtitle.text = if (buttonId in DiKeyButtonCatalog.ids) {
-            getString(R.string.button_mapping_choose_app_for_fmt, buttonId)
-        } else {
-            getString(R.string.button_mapping_choose_app_hint)
+        subtitle.text = when {
+            dialSlot != null -> getString(
+                R.string.map_action_dial_subtitle_fmt,
+                if (dialSlot!!.side == "LEFT") getString(R.string.dial_left) else getString(R.string.dial_right),
+                getString(dialSlot!!.titleRes)
+            )
+            buttonId in DiKeyButtonCatalog.ids && slot != null ->
+                getString(R.string.button_mapping_choose_app_slot_fmt, buttonId, getString(slot.titleRes))
+            buttonId in DiKeyButtonCatalog.ids ->
+                getString(R.string.button_mapping_choose_app_for_fmt, buttonId)
+            else -> getString(R.string.button_mapping_choose_app_hint)
         }
 
         findViewById<android.widget.ImageButton>(R.id.pickerBackButton).setOnClickListener {
@@ -44,6 +57,8 @@ class AppPickerActivity : OpenDiKeyActivity() {
             val app = adapter.getItem(position)
             val result = Intent()
                 .putExtra(EXTRA_BUTTON_ID, buttonId)
+                .putExtra(EXTRA_SLOT, intent.getStringExtra(EXTRA_SLOT))
+                .putExtra(EXTRA_DIAL_SLOT, dialSlot?.storageKey)
             if (app.packageName.isEmpty()) {
                 result.putExtra(EXTRA_CLEARED, true)
             } else {
@@ -70,6 +85,8 @@ class AppPickerActivity : OpenDiKeyActivity() {
 
     companion object {
         const val EXTRA_BUTTON_ID = "button_id"
+        const val EXTRA_SLOT = "slot"
+        const val EXTRA_DIAL_SLOT = "dial_slot"
         const val EXTRA_PACKAGE = "package"
         const val EXTRA_LABEL = "label"
         const val EXTRA_CLEARED = "cleared"

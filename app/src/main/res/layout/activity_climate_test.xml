@@ -151,6 +151,14 @@
                 android:text="@string/ac_auto" />
 
             <Button
+                android:id="@+id/syncButton"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="3dp"
+                android:layout_weight="1"
+                android:text="@string/ac_sync" />
+
+            <Button
                 android:id="@+id/recircButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"

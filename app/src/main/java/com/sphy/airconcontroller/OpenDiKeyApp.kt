@@ -13,6 +13,7 @@ class OpenDiKeyApp : Application() {
         super.onCreate()
         dikey = DiKeySession(this)
         dikey.start()
+        com.sphy.airconcontroller.lighting.LightingScheduler.scheduleNext(this)
         DiKeyListenService.start(this)
     }
 

@@ -6,10 +6,14 @@ import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
 import android.view.LayoutInflater
 import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.SeekBar
+import android.widget.Spinner
 import android.widget.TextView
 import com.google.android.material.card.MaterialCardView
 import com.sphy.airconcontroller.R
+import com.sphy.airconcontroller.dikey.LedMode
 
 class ColorSettingCard @JvmOverloads constructor(
     context: Context,
@@ -22,6 +26,8 @@ class ColorSettingCard @JvmOverloads constructor(
     private val wheel: HsvColorWheelView
     private val brightnessLabel: TextView
     private val brightnessSeek: SeekBar
+    private val modeLabel: TextView
+    private val modeSpinner: Spinner
     private val redLabel: TextView
     private val redSeek: SeekBar
     private val greenLabel: TextView
@@ -31,9 +37,11 @@ class ColorSettingCard @JvmOverloads constructor(
     private val hexView: TextView
     private val hsv = floatArrayOf(24f, 1f, 1f)
     private var suppress = false
+    private var currentMode: LedMode = LedMode.ON
 
     var onColorChanged: ((red: Int, green: Int, blue: Int) -> Unit)? = null
     var onColorCommitted: ((red: Int, green: Int, blue: Int) -> Unit)? = null
+    var onModeChanged: ((mode: LedMode) -> Unit)? = null
 
     init {
         cardElevation = 0f
@@ -44,6 +52,8 @@ class ColorSettingCard @JvmOverloads constructor(
         wheel = findViewById(R.id.colorSettingWheel)
         brightnessLabel = findViewById(R.id.colorSettingBrightnessLabel)
         brightnessSeek = findViewById(R.id.colorSettingBrightness)
+        modeLabel = findViewById(R.id.colorSettingModeLabel)
+        modeSpinner = findViewById(R.id.colorSettingMode)
         redLabel = findViewById(R.id.colorSettingRedLabel)
         redSeek = findViewById(R.id.colorSettingRed)
         greenLabel = findViewById(R.id.colorSettingGreenLabel)
@@ -51,6 +61,23 @@ class ColorSettingCard @JvmOverloads constructor(
         blueLabel = findViewById(R.id.colorSettingBlueLabel)
         blueSeek = findViewById(R.id.colorSettingBlue)
         hexView = findViewById(R.id.colorSettingHex)
+
+        modeSpinner.adapter = ArrayAdapter(
+            context,
+            android.R.layout.simple_spinner_dropdown_item,
+            LedMode.entries.map { labelFor(it) }
+        )
+        modeSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>?, view: View?, position: Int, id: Long) {
+                if (suppress) return
+                val mode = LedMode.entries[position]
+                if (mode == currentMode) return
+                currentMode = mode
+                onModeChanged?.invoke(mode)
+            }
+
+            override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+        }
 
         wheel.onHueSatChanged = { hue, sat ->
             hsv[0] = hue
@@ -74,6 +101,21 @@ class ColorSettingCard @JvmOverloads constructor(
         titleView.text = title
     }
 
+    fun setModeVisible(visible: Boolean) {
+        val v = if (visible) View.VISIBLE else View.GONE
+        modeLabel.visibility = v
+        modeSpinner.visibility = v
+    }
+
+    fun setMode(mode: LedMode) {
+        currentMode = mode
+        suppress = true
+        modeSpinner.setSelection(LedMode.entries.indexOf(mode).coerceAtLeast(0), false)
+        suppress = false
+    }
+
+    fun mode(): LedMode = currentMode
+
     fun setRgb(red: Int, green: Int, blue: Int) {
         Color.RGBToHSV(red.coerceIn(0, 255), green.coerceIn(0, 255), blue.coerceIn(0, 255), hsv)
         syncUi(Source.EXTERNAL)
@@ -82,6 +124,14 @@ class ColorSettingCard @JvmOverloads constructor(
     val red: Int get() = Color.red(currentColor())
     val green: Int get() = Color.green(currentColor())
     val blue: Int get() = Color.blue(currentColor())
+
+    private fun labelFor(mode: LedMode): String = when (mode) {
+        LedMode.OFF -> context.getString(R.string.led_mode_off)
+        LedMode.BLINK -> context.getString(R.string.led_mode_blink)
+        LedMode.FLOW -> context.getString(R.string.led_mode_flow)
+        LedMode.ON -> context.getString(R.string.led_mode_solid)
+        LedMode.BREATH -> context.getString(R.string.led_mode_breath)
+    }
 
     private fun onRgbDrag(live: Boolean) {
         Color.RGBToHSV(redSeek.progress, greenSeek.progress, blueSeek.progress, hsv)

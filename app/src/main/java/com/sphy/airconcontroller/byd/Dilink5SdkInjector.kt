@@ -17,6 +17,8 @@ object Dilink5SdkInjector {
     private val PROBE_CLASSES = listOf(
         "android.hardware.bydauto.ac.BYDAutoAcDevice",
         "android.hardware.bydauto.statistic.BYDAutoStatisticDevice",
+        "android.hardware.bydauto.sensor.BYDAutoSensorDevice",
+        "android.hardware.bydauto.light.BYDAutoLightDevice",
     )
     private const val OEM_PKG = "com.byd.data.collect"
 

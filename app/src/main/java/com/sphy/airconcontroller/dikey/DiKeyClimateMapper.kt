@@ -6,9 +6,9 @@ import com.sphy.airconcontroller.byd.BydAcController
 import java.util.concurrent.Executors
 
 /**
- * Pushing a DiKey button downwards → vehicle climate. Dial click toggles
- * temp / fan on that side (left = passenger, right = driver).
- * Rotate writes the value. Pushing upwards is handled by [DiKeyUpMapper].
+ * Pushing a DiKey button downwards (click) → vehicle climate (fixed).
+ * Dial click toggles temp / fan on that side (fixed). Dial long-press and
+ * other remappable presses are handled by [DiKeyUpMapper]. Rotate writes the value.
  */
 class DiKeyClimateMapper(
     private val ac: BydAcController,
@@ -52,6 +52,7 @@ class DiKeyClimateMapper(
             6 -> { { ac.toggleFrontDefrost() } }
             7 -> { { ac.toggleRearWindowHeat() } }
             8 -> { { ac.toggleAirOnly() } }
+            9 -> { { ac.toggleSync() } }
             10 -> { { ac.toggleMaxCool() } }
             else -> null
         }

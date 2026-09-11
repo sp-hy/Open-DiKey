@@ -52,6 +52,10 @@ object AdbPermissionManager {
         "android.permission.BYDAUTO_BODYWORK_COMMON",
         "android.permission.BYDAUTO_BODYWORK_GET",
         "android.permission.BYDAUTO_BODYWORK_SET",
+        "android.permission.BYDAUTO_SENSOR_COMMON",
+        "android.permission.BYDAUTO_SENSOR_GET",
+        "android.permission.BYDAUTO_LIGHT_COMMON",
+        "android.permission.BYDAUTO_LIGHT_GET",
     )
 
     private val BACKGROUND_LAUNCH_GRANTS = listOf(
@@ -204,10 +208,16 @@ object AdbPermissionManager {
         } else {
             "monkey -p $packageName -c android.intent.category.LAUNCHER 1"
         }
-        val result = shellSync(context, cmd)
+        return runAmCommand(context, cmd)
+    }
+
+    /** Run an `am start` / `am broadcast` (or other) shell command via local ADB. */
+    fun runAmCommand(context: Context, command: String): Boolean {
+        val result = shellSync(context, command)
         val out = result.output
         return result.exitCode == 0 ||
             out.contains("Starting", ignoreCase = true) ||
+            out.contains("Broadcasting", ignoreCase = true) ||
             out.contains("Events injected", ignoreCase = true)
     }
 

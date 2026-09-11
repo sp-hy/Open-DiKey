@@ -8,32 +8,17 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.ListView
 import android.widget.TextView
-import androidx.activity.result.contract.ActivityResultContracts
+import com.sphy.airconcontroller.dikey.ButtonMapSlot
 import com.sphy.airconcontroller.dikey.DiKeyButtonCatalog
+import com.sphy.airconcontroller.dikey.DialMapSlot
 import com.sphy.airconcontroller.storage.AppSettings
 import com.sphy.airconcontroller.ui.OpenDiKeyActivity
 
+/** First step: pick which remappable press to map. */
 class MapEventActivity : OpenDiKeyActivity() {
     private lateinit var settings: AppSettings
     private var buttonId: Int = 0
-
-    private val pickApp = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        if (result.resultCode != RESULT_OK) return@registerForActivityResult
-        val data = result.data ?: return@registerForActivityResult
-        val id = data.getIntExtra(AppPickerActivity.EXTRA_BUTTON_ID, buttonId)
-        if (id !in DiKeyButtonCatalog.ids) return@registerForActivityResult
-        if (data.getBooleanExtra(AppPickerActivity.EXTRA_CLEARED, false)) {
-            settings.clearUpOpenApp(id)
-        } else {
-            val pkg = data.getStringExtra(AppPickerActivity.EXTRA_PACKAGE)?.takeIf { it.isNotBlank() }
-                ?: return@registerForActivityResult
-            val label = data.getStringExtra(AppPickerActivity.EXTRA_LABEL)?.takeIf { it.isNotBlank() } ?: pkg
-            settings.setUpOpenApp(id, pkg, label)
-        }
-        finish()
-    }
+    private var dialSide: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,56 +26,119 @@ class MapEventActivity : OpenDiKeyActivity() {
 
         settings = OpenDiKeyApp.from(this).dikey.settings
         buttonId = intent.getIntExtra(EXTRA_BUTTON_ID, 0)
+        dialSide = intent.getStringExtra(EXTRA_DIAL_SIDE)?.takeIf { it == "LEFT" || it == "RIGHT" }
 
-        findViewById<TextView>(R.id.mapEventSubtitle).text =
-            if (buttonId in DiKeyButtonCatalog.ids) {
-                getString(R.string.button_mapping_choose_app_for_fmt, buttonId)
-            } else {
-                getString(R.string.map_event_subtitle)
-            }
+        findViewById<TextView>(R.id.mapEventTitle).setText(R.string.map_event_title)
+        findViewById<TextView>(R.id.mapEventSubtitle).text = when {
+            dialSide != null -> getString(
+                R.string.map_event_pick_dial_fmt,
+                dialSideLabel(dialSide!!)
+            )
+            buttonId in DiKeyButtonCatalog.ids ->
+                getString(R.string.map_event_pick_slot_fmt, buttonId)
+            else -> getString(R.string.map_event_subtitle)
+        }
 
         findViewById<android.widget.ImageButton>(R.id.mapEventBackButton).setOnClickListener {
             finish()
         }
 
-        val options = listOf(
-            MapEventOption(
-                id = EVENT_OPEN_APP,
-                title = getString(R.string.map_event_open_app),
-                subtitle = getString(R.string.map_event_open_app_hint)
-            )
-        )
-        val adapter = MapEventAdapter(options)
         val list = findViewById<ListView>(R.id.mapEventList)
-        list.adapter = adapter
+        list.adapter = SlotAdapter(buildRows())
         list.setOnItemClickListener { _, _, position, _ ->
-            when (adapter.getItem(position).id) {
-                EVENT_OPEN_APP -> pickApp.launch(
-                    Intent(this, AppPickerActivity::class.java)
-                        .putExtra(AppPickerActivity.EXTRA_BUTTON_ID, buttonId)
+            val side = dialSide
+            if (side != null) {
+                val dialSlot = DialMapSlot.remappableForSide(side)[position]
+                startActivity(
+                    Intent(this, MapActionActivity::class.java)
+                        .putExtra(MapActionActivity.EXTRA_DIAL_SLOT, dialSlot.storageKey)
+                )
+            } else {
+                val slot = ButtonMapSlot.REMAPPABLE[position]
+                startActivity(
+                    Intent(this, MapActionActivity::class.java)
+                        .putExtra(MapActionActivity.EXTRA_BUTTON_ID, buttonId)
+                        .putExtra(MapActionActivity.EXTRA_SLOT, slot.storageKey)
                 )
             }
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        (findViewById<ListView>(R.id.mapEventList).adapter as? SlotAdapter)?.submit(buildRows())
+    }
+
+    private fun buildRows(): List<SlotRow> {
+        val side = dialSide
+        if (side != null) {
+            return DialMapSlot.remappableForSide(side).map { slot ->
+                SlotRow(
+                    title = getString(slot.titleRes),
+                    subtitle = dialSlotSubtitle(slot)
+                )
+            }
+        }
+        return ButtonMapSlot.REMAPPABLE.map { slot ->
+            SlotRow(
+                title = getString(slot.titleRes),
+                subtitle = buttonSlotSubtitle(slot)
+            )
+        }
+    }
+
+    private fun dialSlotSubtitle(slot: DialMapSlot): String {
+        val mapping = settings.dialAction(slot)
+        if (mapping != null) {
+            return formatButtonActionSummary(
+                packageManager = packageManager,
+                action = mapping,
+                openAppFmt = { getString(R.string.map_slot_open_app_fmt, it) },
+                openAppMissingFmt = { getString(R.string.map_slot_open_app_missing_fmt, it) },
+                intentFmt = { getString(R.string.map_slot_intent_fmt, it) },
+                broadcastFmt = { getString(R.string.map_slot_broadcast_fmt, it) }
+            )
+        }
+        return getString(R.string.map_slot_none)
+    }
+
+    private fun buttonSlotSubtitle(slot: ButtonMapSlot): String {
+        val mapping = settings.buttonAction(buttonId, slot)
+        if (mapping != null) {
+            return formatButtonActionSummary(
+                packageManager = packageManager,
+                action = mapping,
+                openAppFmt = { getString(R.string.map_slot_open_app_fmt, it) },
+                openAppMissingFmt = { getString(R.string.map_slot_open_app_missing_fmt, it) },
+                intentFmt = { getString(R.string.map_slot_intent_fmt, it) },
+                broadcastFmt = { getString(R.string.map_slot_broadcast_fmt, it) }
+            )
+        }
+        return getString(R.string.map_slot_none)
+    }
+
+    private fun dialSideLabel(side: String): String =
+        if (side == "LEFT") getString(R.string.dial_left) else getString(R.string.dial_right)
+
     companion object {
         const val EXTRA_BUTTON_ID = "button_id"
-        private const val EVENT_OPEN_APP = "open_app"
+        const val EXTRA_DIAL_SIDE = "dial_side"
     }
 }
 
-private data class MapEventOption(
-    val id: String,
-    val title: String,
-    val subtitle: String
-)
+private data class SlotRow(val title: String, val subtitle: String)
 
-private class MapEventAdapter(
-    private val items: List<MapEventOption>
+private class SlotAdapter(
+    private var items: List<SlotRow>
 ) : BaseAdapter() {
+    fun submit(next: List<SlotRow>) {
+        items = next
+        notifyDataSetChanged()
+    }
+
     override fun getCount(): Int = items.size
 
-    override fun getItem(position: Int): MapEventOption = items[position]
+    override fun getItem(position: Int): SlotRow = items[position]
 
     override fun getItemId(position: Int): Long = position.toLong()
 
@@ -98,11 +146,10 @@ private class MapEventAdapter(
         val view = convertView ?: LayoutInflater.from(parent.context)
             .inflate(R.layout.item_map_event, parent, false)
         val item = items[position]
-        val title = view.findViewById<TextView>(R.id.mapEventItemTitle)
+        view.findViewById<TextView>(R.id.mapEventItemTitle).text = item.title
         val subtitle = view.findViewById<TextView>(R.id.mapEventItemSubtitle)
-        title.text = item.title
         subtitle.text = item.subtitle
-        subtitle.visibility = if (item.subtitle.isBlank()) View.GONE else View.VISIBLE
+        subtitle.visibility = View.VISIBLE
         return view
     }
 }

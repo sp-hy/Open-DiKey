@@ -9,12 +9,14 @@ import android.os.Handler
 import android.os.Looper
 import com.sphy.airconcontroller.adb.AdbPermissionManager
 import com.sphy.airconcontroller.storage.AppSettings
-import com.sphy.airconcontroller.storage.UpOpenApp
+import com.sphy.airconcontroller.storage.ButtonAction
+import com.sphy.airconcontroller.storage.toAmCommand
+import com.sphy.airconcontroller.storage.toAndroidIntent
 import java.util.concurrent.Executors
 
 /**
- * Pushing a DiKey button upwards → user mappings. For now that is open-app only.
- * Pushing downwards stays climate in [DiKeyClimateMapper].
+ * Remapped button / dial slots → open app or run Android Intent.
+ * Climate defaults stay in [DiKeyClimateMapper] when a press has no mapping.
  */
 class DiKeyUpMapper(
     private val app: Context,
@@ -25,24 +27,45 @@ class DiKeyUpMapper(
     private val io = Executors.newSingleThreadExecutor()
 
     fun handle(event: DiKeyEvent) {
-        if (event !is DiKeyEvent.Button) return
-        if (event.direction != "UP") return
-        if (event.event != "CLICK") return
-        val mapping = settings.upOpenApp(event.logicalId) ?: return
-        main.post { launch(event.logicalId, mapping) }
+        when (event) {
+            is DiKeyEvent.Button -> {
+                val slot = ButtonMapSlot.from(event.direction, event.event) ?: return
+                if (!slot.remappable) return
+                val mapping = settings.buttonAction(event.logicalId, slot) ?: return
+                main.post {
+                    dispatch("btn${event.logicalId} ${slotLabel(slot)}", mapping)
+                }
+            }
+            is DiKeyEvent.Encoder -> {
+                val slot = DialMapSlot.from(event.side, event.event) ?: return
+                if (!slot.remappable) return
+                val mapping = settings.dialAction(slot) ?: return
+                main.post {
+                    dispatch("${event.side.lowercase()} dial ${dialSlotLabel(slot)}", mapping)
+                }
+            }
+            is DiKeyEvent.Raw -> Unit
+        }
     }
 
-    private fun launch(buttonId: Int, mapping: UpOpenApp) {
+    private fun dispatch(tag: String, mapping: ButtonAction) {
+        when (mapping) {
+            is ButtonAction.OpenApp -> launchApp(tag, mapping)
+            is ButtonAction.RunIntent -> runIntent(tag, mapping)
+        }
+    }
+
+    private fun launchApp(tag: String, mapping: ButtonAction.OpenApp) {
         val intent = app.packageManager.getLaunchIntentForPackage(mapping.packageName)
         if (intent == null) {
-            onLog("Buttons · btn$buttonId UP · ${mapping.label} is not installed")
+            onLog("Map · $tag · ${mapping.label} is not installed")
             return
         }
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED)
         val foreground = isAppForeground()
         if (foreground) {
             if (startActivity(intent)) {
-                onLog("Buttons · btn$buttonId UP · open ${mapping.label}")
+                onLog("Map · $tag · open ${mapping.label}")
                 return
             }
         }
@@ -51,15 +74,61 @@ class DiKeyUpMapper(
             val viaAdb = AdbPermissionManager.launchComponent(app, mapping.packageName, component)
             main.post {
                 if (viaAdb) {
-                    onLog("Buttons · btn$buttonId UP · open ${mapping.label}")
+                    onLog("Map · $tag · open ${mapping.label}")
                 } else if (!foreground && startActivity(intent)) {
-                    onLog("Buttons · btn$buttonId UP · open ${mapping.label}")
+                    onLog("Map · $tag · open ${mapping.label}")
                 } else {
-                    onLog("Buttons · btn$buttonId UP · open ${mapping.label} failed (background launch blocked)")
+                    onLog("Map · $tag · open ${mapping.label} failed (background launch blocked)")
                 }
             }
         }
     }
+
+    private fun runIntent(tag: String, mapping: ButtonAction.RunIntent) {
+        val intent = mapping.toAndroidIntent()
+        if (mapping.delivery == ButtonAction.RunIntent.DELIVERY_BROADCAST) {
+            try {
+                app.sendBroadcast(intent)
+                onLog("Map · $tag · broadcast ${mapping.label}")
+            } catch (e: Exception) {
+                io.execute {
+                    val viaAdb = AdbPermissionManager.runAmCommand(app, mapping.toAmCommand())
+                    main.post {
+                        if (viaAdb) {
+                            onLog("Map · $tag · broadcast ${mapping.label} (adb)")
+                        } else {
+                            onLog("Map · $tag · broadcast failed: ${e.message}")
+                        }
+                    }
+                }
+            }
+            return
+        }
+
+        val foreground = isAppForeground()
+        if (foreground && startActivity(intent)) {
+            onLog("Map · $tag · intent ${mapping.label}")
+            return
+        }
+        io.execute {
+            val viaAdb = AdbPermissionManager.runAmCommand(app, mapping.toAmCommand())
+            main.post {
+                if (viaAdb) {
+                    onLog("Map · $tag · intent ${mapping.label}")
+                } else if (!foreground && startActivity(intent)) {
+                    onLog("Map · $tag · intent ${mapping.label}")
+                } else {
+                    onLog("Map · $tag · intent ${mapping.label} failed")
+                }
+            }
+        }
+    }
+
+    private fun slotLabel(slot: ButtonMapSlot): String =
+        "${slot.direction} ${if (slot.event == "LONG_PRESS") "LONG" else "CLICK"}"
+
+    private fun dialSlotLabel(slot: DialMapSlot): String =
+        if (slot.event == "LONG_PRESS") "long" else "click"
 
     private fun startActivity(intent: Intent): Boolean =
         try {
@@ -74,7 +143,7 @@ class DiKeyUpMapper(
             }
             true
         } catch (e: Exception) {
-            onLog("Buttons · startActivity failed: ${e.message}")
+            onLog("Map · startActivity failed: ${e.message}")
             false
         }
 

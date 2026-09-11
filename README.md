@@ -6,14 +6,15 @@ Replaces the vendor app DiKey Smart Link (`迪铠智联`). Runs on DiLink 5 head
 
 > **Note:** The commercial DiKey hardware is sold as _BYD Shark 6 DiKey Vehicle Intelligent Keys_ on [Alibaba](https://www.alibaba.com/product-detail/BYD-Shark-6-DiKey-Vehicle-Intelligent_1601923176905.html). Not affiliated with DiKey, BYD, or the seller. Use at your own risk.
 
-<img width="400" alt="image" src="https://github.com/user-attachments/assets/203e3468-4319-4792-8115-004902720a83" /><img width="400" alt="image" src="https://github.com/user-attachments/assets/332d7a0f-0cef-4ad0-888a-090547291e89" /><img width="400" alt="image" src="https://github.com/user-attachments/assets/62957600-bbc8-445e-ad51-03ba85a635f3" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/203e3468-4319-4792-8115-004902720a83" /><img width="400" alt="image" src="https://github.com/user-attachments/assets/38c9f9ac-c14b-47fd-9aca-f03c557aff9c" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/332d7a0f-0cef-4ad0-888a-090547291e89" /><img width="400" alt="image" src="https://github.com/user-attachments/assets/62957600-bbc8-445e-ad51-03ba85a635f3" />
 
 ---
 
 ## Compatibility
 
-| Vehicle | Status |
-| ------- | ------ |
+| Vehicle     | Status    |
+| ----------- | --------- |
 | BYD Shark 6 | Supported |
 
 Other vehicles are untested.
@@ -63,9 +64,9 @@ After that, the listener starts automatically on reboot.
 
 ## Features
 
-**Colors** — Set ambient bars (left, middle, right) and DiKey backlight with HSV wheels. Changes apply live.
+**Colors** — Set ambient bars (left, middle, right) and DiKey backlight with HSV wheels. Pick modes (solid / breath / blink / flow / off). Day and night profiles switch automatically from the vehicle ambient-light sensor (same signal as auto headlights / tunnels).
 
-**Button mapping** — Downward presses control climate (as printed). Upward presses can be mapped to open apps.
+**Button mapping** — Down click keeps climate (as printed) unless remapped. Down long, up, and up long can open apps or run Android Intents (activity / broadcast).
 
 **Dials** — Left dial = passenger, right dial = driver. Click to switch between **temp** and **fan**, rotate to adjust.
 
@@ -75,18 +76,18 @@ After that, the listener starts automatically on reboot.
 
 ## Button reference
 
-| Button | Downward press          |
-| ------ | ----------------------- |
-| 1      | Climate on/off          |
-| 2      | A/C compressor          |
-| 3      | Cycle wind              |
-| 4      | Recirc                  |
-| 5      | Auto                    |
-| 6      | Front defog             |
-| 7      | Rear window / mirrors   |
-| 8      | Air only                |
-| 9      | Sync _(not mapped yet)_ |
-| 10     | Max cool                |
+| Button | Downward press                |
+| ------ | ----------------------------- |
+| 1      | Climate on/off                |
+| 2      | A/C compressor                |
+| 3      | Cycle wind                    |
+| 4      | Recirc                        |
+| 5      | Auto                          |
+| 6      | Front defog                   |
+| 7      | Rear window / mirrors         |
+| 8      | Air only                      |
+| 9      | Sync (driver/passenger temps) |
+| 10     | Max cool                      |
 
 ---
 
@@ -122,8 +123,8 @@ After that, the listener starts automatically on reboot.
 - [x] Climate + dials
 - [x] App launcher
 - [x] Boot listener
-- [ ] More event types
-- [ ] Sync button action
+- [x] More event types (long-press up/down)
+- [x] Sync button action
 - [x] Vehicle compatibility docs
 
 ---

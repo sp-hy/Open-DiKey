@@ -43,6 +43,9 @@ class DiKeyListenService : Service() {
         CONNECT_RETRY_MS.forEach { delay ->
             main.postDelayed({ OpenDiKeyApp.from(this).dikey.ensureConnected() }, delay)
         }
+        main.post {
+            com.sphy.airconcontroller.lighting.LightingScheduler.sync(this, forceApply = true)
+        }
         scope.launch {
             AdbPermissionManager.ensureVehicleApiAccess(applicationContext)
             if (!AdbPermissionManager.isSetupComplete(applicationContext)) {

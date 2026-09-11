@@ -1,0 +1,219 @@
+package com.sphy.airconcontroller
+
+import android.content.Intent
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.BaseAdapter
+import android.widget.ListView
+import android.widget.TextView
+import androidx.activity.result.contract.ActivityResultContracts
+import com.sphy.airconcontroller.dikey.ButtonMapSlot
+import com.sphy.airconcontroller.dikey.DiKeyButtonCatalog
+import com.sphy.airconcontroller.dikey.DialMapSlot
+import com.sphy.airconcontroller.storage.AppSettings
+import com.sphy.airconcontroller.storage.ButtonAction
+import com.sphy.airconcontroller.ui.OpenDiKeyActivity
+
+/** Second step: choose what a selected press does. */
+class MapActionActivity : OpenDiKeyActivity() {
+    private lateinit var settings: AppSettings
+    private var buttonId: Int = 0
+    private var buttonSlot: ButtonMapSlot = ButtonMapSlot.UP_CLICK
+    private var dialSlot: DialMapSlot? = null
+
+    private val pickApp = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != RESULT_OK) return@registerForActivityResult
+        val data = result.data ?: return@registerForActivityResult
+        val dial = DialMapSlot.fromStorageKey(data.getStringExtra(AppPickerActivity.EXTRA_DIAL_SLOT).orEmpty())
+            ?: dialSlot
+        if (dial != null) {
+            if (data.getBooleanExtra(AppPickerActivity.EXTRA_CLEARED, false)) {
+                settings.clearDialAction(dial)
+            } else {
+                val pkg = data.getStringExtra(AppPickerActivity.EXTRA_PACKAGE)?.takeIf { it.isNotBlank() }
+                    ?: return@registerForActivityResult
+                val label = data.getStringExtra(AppPickerActivity.EXTRA_LABEL)?.takeIf { it.isNotBlank() } ?: pkg
+                settings.setDialAction(dial, ButtonAction.OpenApp(pkg, label))
+            }
+            finish()
+            return@registerForActivityResult
+        }
+        val id = data.getIntExtra(AppPickerActivity.EXTRA_BUTTON_ID, buttonId)
+        if (id !in DiKeyButtonCatalog.ids) return@registerForActivityResult
+        val slotKey = data.getStringExtra(AppPickerActivity.EXTRA_SLOT) ?: buttonSlot.storageKey
+        val chosen = ButtonMapSlot.fromStorageKey(slotKey) ?: buttonSlot
+        if (data.getBooleanExtra(AppPickerActivity.EXTRA_CLEARED, false)) {
+            settings.clearButtonAction(id, chosen)
+        } else {
+            val pkg = data.getStringExtra(AppPickerActivity.EXTRA_PACKAGE)?.takeIf { it.isNotBlank() }
+                ?: return@registerForActivityResult
+            val label = data.getStringExtra(AppPickerActivity.EXTRA_LABEL)?.takeIf { it.isNotBlank() } ?: pkg
+            settings.setButtonAction(id, chosen, ButtonAction.OpenApp(pkg, label))
+        }
+        finish()
+    }
+
+    private val editIntent = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) finish()
+    }
+
+    private val pickAction = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == RESULT_OK) finish()
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_map_event)
+
+        settings = OpenDiKeyApp.from(this).dikey.settings
+        dialSlot = DialMapSlot.fromStorageKey(intent.getStringExtra(EXTRA_DIAL_SLOT).orEmpty())
+        buttonId = intent.getIntExtra(EXTRA_BUTTON_ID, 0)
+        buttonSlot = ButtonMapSlot.fromStorageKey(intent.getStringExtra(EXTRA_SLOT).orEmpty())
+            ?: ButtonMapSlot.UP_CLICK
+        if (dialSlot?.remappable == false || (dialSlot == null && !buttonSlot.remappable)) {
+            finish()
+            return
+        }
+
+        findViewById<TextView>(R.id.mapEventTitle).setText(R.string.map_action_title)
+        findViewById<TextView>(R.id.mapEventSubtitle).text = subtitle()
+
+        findViewById<android.widget.ImageButton>(R.id.mapEventBackButton).setOnClickListener {
+            finish()
+        }
+
+        val options = buildList {
+            if (currentMapping() != null) {
+                add(
+                    ActionOption(
+                        id = ACTION_CLEAR,
+                        title = getString(R.string.map_event_clear),
+                        subtitle = getString(R.string.map_event_clear_hint)
+                    )
+                )
+            }
+            add(
+                ActionOption(
+                    id = ACTION_OPEN_APP,
+                    title = getString(R.string.map_event_open_app),
+                    subtitle = getString(R.string.map_event_open_app_hint)
+                )
+            )
+            add(
+                ActionOption(
+                    id = ACTION_SYSTEM,
+                    title = getString(R.string.map_event_system_action),
+                    subtitle = getString(R.string.map_event_system_action_hint)
+                )
+            )
+            add(
+                ActionOption(
+                    id = ACTION_INTENT,
+                    title = getString(R.string.map_event_run_intent),
+                    subtitle = getString(R.string.map_event_run_intent_hint)
+                )
+            )
+        }
+        val adapter = ActionAdapter(options)
+        val list = findViewById<ListView>(R.id.mapEventList)
+        list.adapter = adapter
+        list.setOnItemClickListener { _, _, position, _ ->
+            when (adapter.getItem(position).id) {
+                ACTION_CLEAR -> {
+                    clearMapping()
+                    finish()
+                }
+                ACTION_OPEN_APP -> pickApp.launch(appPickerIntent())
+                ACTION_SYSTEM -> pickAction.launch(systemPickerIntent())
+                ACTION_INTENT -> editIntent.launch(intentEditorIntent())
+            }
+        }
+    }
+
+    private fun subtitle(): String {
+        val dial = dialSlot
+        return if (dial != null) {
+            getString(
+                R.string.map_action_dial_subtitle_fmt,
+                if (dial.side == "LEFT") getString(R.string.dial_left) else getString(R.string.dial_right),
+                getString(dial.titleRes)
+            )
+        } else {
+            getString(R.string.map_action_subtitle_fmt, buttonId, getString(buttonSlot.titleRes))
+        }
+    }
+
+    private fun currentMapping(): ButtonAction? {
+        val dial = dialSlot
+        return if (dial != null) settings.dialAction(dial) else settings.buttonAction(buttonId, buttonSlot)
+    }
+
+    private fun clearMapping() {
+        val dial = dialSlot
+        if (dial != null) settings.clearDialAction(dial) else settings.clearButtonAction(buttonId, buttonSlot)
+    }
+
+    private fun appPickerIntent(): Intent =
+        Intent(this, AppPickerActivity::class.java).also { putTargetExtras(it) }
+
+    private fun systemPickerIntent(): Intent =
+        Intent(this, ActionPickerActivity::class.java).also { putTargetExtras(it) }
+
+    private fun intentEditorIntent(): Intent =
+        Intent(this, IntentEditorActivity::class.java).also { putTargetExtras(it) }
+
+    private fun putTargetExtras(intent: Intent) {
+        val dial = dialSlot
+        if (dial != null) {
+            intent.putExtra(EXTRA_DIAL_SLOT, dial.storageKey)
+        } else {
+            intent.putExtra(EXTRA_BUTTON_ID, buttonId)
+            intent.putExtra(EXTRA_SLOT, buttonSlot.storageKey)
+        }
+    }
+
+    companion object {
+        const val EXTRA_BUTTON_ID = "button_id"
+        const val EXTRA_SLOT = "slot"
+        const val EXTRA_DIAL_SLOT = "dial_slot"
+        private const val ACTION_CLEAR = "clear"
+        private const val ACTION_OPEN_APP = "open_app"
+        private const val ACTION_SYSTEM = "system_action"
+        private const val ACTION_INTENT = "run_intent"
+    }
+}
+
+private data class ActionOption(
+    val id: String,
+    val title: String,
+    val subtitle: String
+)
+
+private class ActionAdapter(
+    private val items: List<ActionOption>
+) : BaseAdapter() {
+    override fun getCount(): Int = items.size
+
+    override fun getItem(position: Int): ActionOption = items[position]
+
+    override fun getItemId(position: Int): Long = position.toLong()
+
+    override fun getView(position: Int, convertView: View?, parent: ViewGroup): View {
+        val view = convertView ?: LayoutInflater.from(parent.context)
+            .inflate(R.layout.item_map_event, parent, false)
+        val item = items[position]
+        view.findViewById<TextView>(R.id.mapEventItemTitle).text = item.title
+        val subtitle = view.findViewById<TextView>(R.id.mapEventItemSubtitle)
+        subtitle.text = item.subtitle
+        subtitle.visibility = if (item.subtitle.isBlank()) View.GONE else View.VISIBLE
+        return view
+    }
+}

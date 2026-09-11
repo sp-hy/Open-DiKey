@@ -45,6 +45,9 @@ class BydAcController(context: Context) {
     private var lastSetVentilation: Boolean? = null
 
     @Volatile
+    private var lastSetTempSynced: Boolean? = null
+
+    @Volatile
     private var lastSetWindMode: Int? = null
 
     @Volatile
@@ -73,7 +76,9 @@ class BydAcController(context: Context) {
         val maxCool: Boolean?,
         val ventilation: Boolean?,
         val frontDefrost: Boolean?,
-        val rearDefrost: Boolean?
+        val rearDefrost: Boolean?,
+        /** True when driver/passenger setpoints are linked (SEPARATE_OFF). */
+        val tempSynced: Boolean?
     ) {
         fun toDisplayString(): String {
             if (!sdkInjected) {
@@ -90,6 +95,7 @@ class BydAcController(context: Context) {
                 appendLine("Outside: ${fmtTemp(outsideTempC)}")
                 appendLine("Fan: ${fanLevel?.toString() ?: "—"}")
                 appendLine("Mode: ${fmtControl(controlMode)}")
+                appendLine("Temp sync: ${fmtOnOff(tempSynced)}")
                 appendLine("Air: ${fmtCycle(cycleMode)}")
                 appendLine("Front demist: ${fmtOnOff(frontDefrost)}")
                 appendLine("Rear window and mirrors: ${fmtOnOff(rearDefrost)}")
@@ -162,6 +168,7 @@ class BydAcController(context: Context) {
             ventilation = lastSetVentilation ?: intToBool(getInt("getAcVentilationState")),
             frontDefrost = intToBool(defrostState(frontDefrostArea())),
             rearDefrost = lastSetRearHeat ?: intToBool(rearHeatState()),
+            tempSynced = isTempSynced(),
         )
     }
 
@@ -214,23 +221,82 @@ class BydAcController(context: Context) {
         )
     }
 
+    /**
+     * Toggle driver/passenger temperature link (climate SYNC).
+     * Synced = SEPARATE_OFF; dual-zone = SEPARATE_ON.
+     */
+    fun toggleSync(): CommandResult {
+        if (!ensureDevice()) return notBound()
+        val synced = isTempSynced() ?: false
+        return setTempSynced(!synced)
+    }
+
+    fun setTempSynced(synced: Boolean): CommandResult {
+        if (!ensureDevice()) return notBound()
+        val mode = if (synced) tempCtrlSynced() else tempCtrlSeparate()
+        val attempts = listOf(
+            { call("setAcTemperatureControlMode", SOURCE_VOICE, mode) },
+            { call("setAcTemperatureControlMode", SOURCE_UI, mode) },
+            { call("setAcTemperatureControlMode", mode, SOURCE_VOICE) },
+            { call("setAcTemperatureControlMode", mode) },
+        )
+        var last = notBound()
+        for (attempt in attempts) {
+            val result = attempt()
+            pauseForEcu()
+            val after = getInt("getAcTemperatureControlMode")
+            if (result.success && (after == mode || after == null)) {
+                lastSetTempSynced = synced
+                return result
+            }
+            if (result.detail != "no such method") last = result
+        }
+        return last
+    }
+
     private fun ensureDualZone() {
         if (!ensureDevice()) return
-        val dual = constInt(
+        if (isTempSynced() == false) return
+        setTempSynced(false)
+    }
+
+    private fun isTempSynced(): Boolean? {
+        val mode = getInt("getAcTemperatureControlMode")
+        if (mode != null) {
+            val synced = tempCtrlSynced()
+            val separate = tempCtrlSeparate()
+            when (mode) {
+                synced -> {
+                    lastSetTempSynced = true
+                    return true
+                }
+                separate -> {
+                    lastSetTempSynced = false
+                    return false
+                }
+            }
+        }
+        return lastSetTempSynced
+    }
+
+    private fun tempCtrlSynced(): Int =
+        constInt(
+            "AC_TEMPCTRL_SEPARATE_OFF",
+            "AC_TEMPCTRLMODE_SEPARATE_OFF",
+            "AC_TEMPERATURE_SYNC",
+            "AC_TEMPCTRL_SYNC",
+        ) ?: TEMP_CTRL_SYNCED
+
+    private fun tempCtrlSeparate(): Int =
+        constInt(
+            "AC_TEMPCTRL_SEPARATE_ON",
             "AC_TEMPCTRLMODE_SEPARATE",
+            "AC_TEMPCTRLMODE_SEPARATE_ON",
             "AC_TEMPERATURE_DUAL",
             "AC_TEMPCTRL_DUAL",
             "AC_TEMPCTRLMODE_DUAL",
             "AC_CTRL_TEMP_DUAL",
-        ) ?: return
-        if (getInt("getAcTemperatureControlMode") == dual) return
-        firstSuccess(
-            { call("setAcTemperatureControlMode", SOURCE_UI, dual) },
-            { call("setAcTemperatureControlMode", SOURCE_VOICE, dual) },
-            { call("setAcTemperatureControlMode", dual, SOURCE_VOICE) },
-            { call("setAcTemperatureControlMode", dual) },
-        )
-    }
+        ) ?: TEMP_CTRL_SEPARATE
 
     fun setFanLevel(level: Int): CommandResult {
         if (!ensureDevice()) return notBound()
@@ -786,6 +852,9 @@ class BydAcController(context: Context) {
         private const val SOURCE_VOICE = 1
         private const val CONTROL_AUTO = 0
         private const val CONTROL_MANUAL = 1
+        /** Fallback when SDK constants are missing: 0 = linked, 1 = dual-zone. */
+        private const val TEMP_CTRL_SYNCED = 0
+        private const val TEMP_CTRL_SEPARATE = 1
         // Getter on DiLink 5: 1 = recirc, 0 = fresh. Named 2-arg SET is (source, mode).
         private const val CYCLE_RECIRC = 1
         private const val CYCLE_FRESH = 0
