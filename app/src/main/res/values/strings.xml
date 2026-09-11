@@ -82,10 +82,10 @@
   <string name="ac_max_cool">Max cooling</string>
   <string name="seat_heat_cycle">Seat heat cycle</string>
   <string name="seat_vent_cycle">Seat cool cycle</string>
-  <string name="seat_heat_driver">Driver heat</string>
-  <string name="seat_vent_driver">Driver cool</string>
-  <string name="seat_heat_passenger">Passenger heat</string>
-  <string name="seat_vent_passenger">Passenger cool</string>
+  <string name="seat_heat_driver">Driver seat heating</string>
+  <string name="seat_vent_driver">Driver seat cooling</string>
+  <string name="seat_heat_passenger">Passenger seat heating</string>
+  <string name="seat_vent_passenger">Passenger seat cooling</string>
   <string name="dump_methods">Dump AC methods</string>
   <string name="dump_saved">Dump copied and saved to %1$s</string>
   <string name="ac_status_placeholder">AC status will appear here after ADB setup.</string>

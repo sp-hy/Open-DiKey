@@ -67,14 +67,15 @@ class UsbProbeActivity : OpenDiKeyActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_usb_probe)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = getString(R.string.usb_title)
 
         usbManager = getSystemService(USB_SERVICE) as UsbManager
         statusText = findViewById(R.id.usbStatusText)
         selectedText = findViewById(R.id.usbSelectedText)
         logText = findViewById(R.id.usbLogText)
         adapter = UsbDeviceListAdapter(this)
+        findViewById<android.widget.ImageButton>(R.id.usbBackButton).setOnClickListener {
+            finish()
+        }
         findViewById<ListView>(R.id.usbDeviceList).let { list ->
             list.adapter = adapter
             list.setOnItemClickListener { _, _, position, _ ->
@@ -134,11 +135,6 @@ class UsbProbeActivity : OpenDiKeyActivity() {
         unregisterReceiver(usbReceiver)
         serial.close()
         super.onDestroy()
-    }
-
-    override fun onSupportNavigateUp(): Boolean {
-        finish()
-        return true
     }
 
     private fun handleLaunchIntent(intent: Intent?) {

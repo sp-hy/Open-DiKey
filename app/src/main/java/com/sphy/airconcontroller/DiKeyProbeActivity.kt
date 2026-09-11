@@ -24,13 +24,14 @@ class DiKeyProbeActivity : OpenDiKeyActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dikey_probe)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = getString(R.string.dikey_title)
 
         val session = OpenDiKeyApp.from(this).dikey
         connStatusText = findViewById(R.id.dikeyConnStatusText)
         eventLogText = findViewById(R.id.dikeyEventLog)
 
+        findViewById<android.widget.ImageButton>(R.id.dikeyBackButton).setOnClickListener {
+            finish()
+        }
         findViewById<Button>(R.id.dikeyClearLogButton).setOnClickListener {
             eventLines.clear()
             eventLogText.text = getString(R.string.dikey_event_log_empty)
@@ -51,11 +52,6 @@ class DiKeyProbeActivity : OpenDiKeyActivity() {
                 session.logs.collect { appendLogLine(it) }
             }
         }
-    }
-
-    override fun onSupportNavigateUp(): Boolean {
-        finish()
-        return true
     }
 
     private fun appendEvent(event: DiKeyEvent) {

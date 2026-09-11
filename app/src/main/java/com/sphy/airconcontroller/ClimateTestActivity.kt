@@ -28,14 +28,16 @@ class ClimateTestActivity : OpenDiKeyActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_climate_test)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        title = getString(R.string.climate_title)
 
         ac = BydAcController(this)
         seats = BydSeatController(this)
         acStatusText = findViewById(R.id.acStatusText)
         lastResultText = findViewById(R.id.lastResultText)
         dumpText = findViewById(R.id.dumpText)
+
+        findViewById<android.widget.ImageButton>(R.id.climateBackButton).setOnClickListener {
+            finish()
+        }
 
         findViewById<Button>(R.id.refreshButton).setOnClickListener { refreshStatus() }
         findViewById<Button>(R.id.acOnButton).setOnClickListener { runAc("Climate ON") { ac.start() } }
@@ -54,20 +56,28 @@ class ClimateTestActivity : OpenDiKeyActivity() {
         findViewById<Button>(R.id.airOnlyButton).setOnClickListener { runAc("Air only") { ac.toggleAirOnly() } }
         findViewById<Button>(R.id.maxCoolButton).setOnClickListener { runAc("Max cooling") { ac.setMaxCool(true) } }
         findViewById<Button>(R.id.seatHeatDriverButton).setOnClickListener {
-            Log.i(SEAT_TAG, "Driver heat clicked")
-            runSeat("Driver heat") { seats.cycleHeating(BydSeatController.Zone.DRIVER) }
+            Log.i(SEAT_TAG, "Driver seat heating clicked")
+            runSeat(getString(R.string.seat_heat_driver)) {
+                seats.cycleHeating(BydSeatController.Zone.DRIVER)
+            }
         }
         findViewById<Button>(R.id.seatVentDriverButton).setOnClickListener {
-            Log.i(SEAT_TAG, "Driver cool clicked")
-            runSeat("Driver cool") { seats.cycleVentilation(BydSeatController.Zone.DRIVER) }
+            Log.i(SEAT_TAG, "Driver seat cooling clicked")
+            runSeat(getString(R.string.seat_vent_driver)) {
+                seats.cycleVentilation(BydSeatController.Zone.DRIVER)
+            }
         }
         findViewById<Button>(R.id.seatHeatPassengerButton).setOnClickListener {
-            Log.i(SEAT_TAG, "Passenger heat clicked")
-            runSeat("Passenger heat") { seats.cycleHeating(BydSeatController.Zone.PASSENGER) }
+            Log.i(SEAT_TAG, "Passenger seat heating clicked")
+            runSeat(getString(R.string.seat_heat_passenger)) {
+                seats.cycleHeating(BydSeatController.Zone.PASSENGER)
+            }
         }
         findViewById<Button>(R.id.seatVentPassengerButton).setOnClickListener {
-            Log.i(SEAT_TAG, "Passenger cool clicked")
-            runSeat("Passenger cool") { seats.cycleVentilation(BydSeatController.Zone.PASSENGER) }
+            Log.i(SEAT_TAG, "Passenger seat cooling clicked")
+            runSeat(getString(R.string.seat_vent_passenger)) {
+                seats.cycleVentilation(BydSeatController.Zone.PASSENGER)
+            }
         }
         findViewById<Button>(R.id.dumpMethodsButton).setOnClickListener {
             lifecycleScope.launch {
@@ -79,13 +89,6 @@ class ClimateTestActivity : OpenDiKeyActivity() {
                 Snackbar.make(dumpText, getString(R.string.dump_saved, path), Snackbar.LENGTH_LONG).show()
             }
         }
-
-        refreshStatus()
-    }
-
-    override fun onSupportNavigateUp(): Boolean {
-        finish()
-        return true
     }
 
     override fun onStart() {
@@ -134,15 +137,19 @@ class ClimateTestActivity : OpenDiKeyActivity() {
     private fun refreshStatus() {
         lifecycleScope.launch {
             val snap = withContext(Dispatchers.IO) { ac.snapshot() }
-            acStatusText.text = snap.toDisplayString()
             val seatLine = try {
                 withContext(Dispatchers.IO) { seats.statusLine() }
             } catch (t: Throwable) {
                 Log.w(SEAT_TAG, "statusLine", t)
                 "Seat: error (${t.message})"
             }
-            if (seatLine.isNotBlank()) {
-                acStatusText.append("\n$seatLine")
+            // Set once — concurrent refreshStatus() calls used to append seat lines twice.
+            acStatusText.text = buildString {
+                append(snap.toDisplayString())
+                if (seatLine.isNotBlank()) {
+                    append('\n')
+                    append(seatLine)
+                }
             }
         }
     }

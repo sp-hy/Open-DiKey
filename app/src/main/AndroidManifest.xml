@@ -146,17 +146,20 @@
     <activity
       android:name=".ClimateTestActivity"
       android:exported="false"
-      android:parentActivityName=".SettingsHubActivity" />
+      android:parentActivityName=".SettingsHubActivity"
+      android:theme="@style/Theme.OpenDiKey" />
     <activity
       android:name=".DiKeyProbeActivity"
       android:exported="true"
       android:launchMode="singleTop"
-      android:parentActivityName=".SettingsHubActivity" />
+      android:parentActivityName=".SettingsHubActivity"
+      android:theme="@style/Theme.OpenDiKey" />
     <activity
       android:name=".UsbProbeActivity"
       android:exported="true"
       android:launchMode="singleTop"
-      android:parentActivityName=".SettingsHubActivity" />
+      android:parentActivityName=".SettingsHubActivity"
+      android:theme="@style/Theme.OpenDiKey" />
     <receiver
       android:name=".usb.UsbPermissionReceiver"
       android:exported="true">

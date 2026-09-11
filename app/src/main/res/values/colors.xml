@@ -13,4 +13,5 @@
     <color name="text_primary">#FFF4F6F8</color>
     <color name="text_muted">#FF9AA3AE</color>
     <color name="accent_orange">#FFFF5A1F</color>
+    <color name="accent_orange_soft">#33FF5A1F</color>
 </resources>

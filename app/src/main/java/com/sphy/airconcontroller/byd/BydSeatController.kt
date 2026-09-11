@@ -76,8 +76,8 @@ class BydSeatController(context: Context) {
                     val vent = normalizeOem(readOem(Kind.VENT, zone))
                     if (isNotEmpty()) append('\n')
                     append(zone.label)
-                    append(" heat ").append(fmtOem(heat))
-                    append(" · cool ").append(fmtOem(vent))
+                    append(" seat heating ").append(fmtOem(heat))
+                    append(" · seat cooling ").append(fmtOem(vent))
                 }
             }
         } catch (t: Throwable) {
