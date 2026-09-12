@@ -10,8 +10,18 @@
     <color name="bg_dark">#FF101214</color>
     <color name="surface">#FF1A1E24</color>
     <color name="surface_stroke">#FF2A3038</color>
+    <color name="divider_soft">#33F4F6F8</color>
     <color name="text_primary">#FFF4F6F8</color>
     <color name="text_muted">#FF9AA3AE</color>
     <color name="accent_orange">#FFFF5A1F</color>
     <color name="accent_orange_soft">#33FF5A1F</color>
+    <color name="tyre_ok">#FF3DDC84</color>
+    <color name="tyre_under">#FFFF5A1F</color>
+    <color name="tyre_fault">#FFFF3B30</color>
+    <color name="horizon_sky">#FF2A6FBF</color>
+    <color name="horizon_ground">#FF6B4E2E</color>
+    <color name="horizon_line">#FFF4F6F8</color>
+    <color name="percent_bar_start">#FFFF5A1F</color>
+    <color name="percent_bar_mid">#FFFFB020</color>
+    <color name="percent_bar_end">#FF3DDC84</color>
 </resources>

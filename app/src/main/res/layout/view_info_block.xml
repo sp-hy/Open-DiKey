@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    android:background="@drawable/bg_info_block"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <TextView
+        android:id="@+id/infoBlockTitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2"
+        android:textColor="@color/accent_orange"
+        android:textStyle="bold"
+        tools:text="Battery" />
+
+    <TextView
+        android:id="@+id/infoBlockHero"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Headline4"
+        android:textColor="@color/text_primary"
+        android:textStyle="bold"
+        android:visibility="gone"
+        tools:text="91%"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/infoBlockSubtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:textAppearance="@style/TextAppearance.MaterialComponents.Caption"
+        android:textColor="@color/text_muted"
+        android:visibility="gone"
+        tools:text="26.9 kWh left · Pack ~29.6 kWh"
+        tools:visibility="visible" />
+
+    <LinearLayout
+        android:id="@+id/infoBlockRows"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="vertical" />
+</LinearLayout>

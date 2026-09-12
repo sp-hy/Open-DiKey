@@ -136,3 +136,10 @@ DiLink 5 permission and SDK loading follow **[BYD Trip Stats](https://github.com
 Built with [dadb](https://github.com/mobile-dev-inc/dadb).
 
 Vendor manuals redistributed for offline use with purchased hardware; copyright remains with respective owners.
+
+### Icons
+
+- [Wheel](https://thenounproject.com/icon/wheel-8052406/) by Asiah from [Noun Project](https://thenounproject.com/) (CC BY)
+- [Color wheel](https://thenounproject.com/icon/color-wheel-8403265/) by Fahad Hashmi from [Noun Project](https://thenounproject.com/) (CC BY)
+- [Button](https://thenounproject.com/icon/button-8215836/) by Larea from [Noun Project](https://thenounproject.com/) (CC BY)
+- [Dial](https://thenounproject.com/icon/dial-4575189/) by Zach Bogart from [Noun Project](https://thenounproject.com/) (CC BY)

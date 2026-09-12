@@ -22,5 +22,8 @@ class SettingsHubActivity : OpenDiKeyActivity() {
         findViewById<android.view.View>(R.id.openUsbButton).setOnClickListener {
             startActivity(Intent(this, UsbProbeActivity::class.java))
         }
+        findViewById<android.view.View>(R.id.openVehicleDumpButton).setOnClickListener {
+            startActivity(Intent(this, VehicleDumpActivity::class.java))
+        }
     }
 }

@@ -21,6 +21,16 @@ object Dilink5SdkInjector {
         "android.hardware.bydauto.light.BYDAutoLightDevice",
         "android.hardware.bydauto.setting.BYDAutoSettingDevice",
         "android.hardware.bydauto.seat.BYDAutoSeatDevice",
+        "android.hardware.bydauto.tyre.BYDAutoTyreDevice",
+        "android.hardware.bydauto.speed.BYDAutoSpeedDevice",
+        "android.hardware.bydauto.gearbox.BYDAutoGearboxDevice",
+        "android.hardware.bydauto.engine.BYDAutoEngineDevice",
+        "android.hardware.bydauto.charging.BYDAutoChargingDevice",
+        "android.hardware.bydauto.energy.BYDAutoEnergyDevice",
+        "android.hardware.bydauto.instrument.BYDAutoInstrumentDevice",
+        "android.hardware.bydauto.bodywork.BYDAutoBodyworkDevice",
+        "android.hardware.bydauto.vehiclehealth.BYDAutoVehicleHealthDevice",
+        "android.hardware.bydauto.collectdata.BYDAutoCollectDataDevice",
     )
     private const val OEM_PKG = "com.byd.data.collect"
 

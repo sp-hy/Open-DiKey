@@ -56,6 +56,22 @@ object AdbPermissionManager {
         "android.permission.BYDAUTO_SENSOR_GET",
         "android.permission.BYDAUTO_LIGHT_COMMON",
         "android.permission.BYDAUTO_LIGHT_GET",
+        "android.permission.BYDAUTO_TYRE_COMMON",
+        "android.permission.BYDAUTO_TYRE_GET",
+        "android.permission.BYDAUTO_STATISTIC_COMMON",
+        "android.permission.BYDAUTO_STATISTIC_GET",
+        "android.permission.BYDAUTO_SPEED_COMMON",
+        "android.permission.BYDAUTO_SPEED_GET",
+        "android.permission.BYDAUTO_GEARBOX_COMMON",
+        "android.permission.BYDAUTO_GEARBOX_GET",
+        "android.permission.BYDAUTO_ENGINE_COMMON",
+        "android.permission.BYDAUTO_ENGINE_GET",
+        "android.permission.BYDAUTO_CHARGING_COMMON",
+        "android.permission.BYDAUTO_CHARGING_GET",
+        "android.permission.BYDAUTO_ENERGY_COMMON",
+        "android.permission.BYDAUTO_ENERGY_GET",
+        "android.permission.BYDAUTO_INSTRUMENT_COMMON",
+        "android.permission.BYDAUTO_INSTRUMENT_GET",
     )
 
     private val BACKGROUND_LAUNCH_GRANTS = listOf(
@@ -196,6 +212,31 @@ object AdbPermissionManager {
 
     suspend fun runShellCommand(context: Context, command: String): ShellResult = withContext(Dispatchers.IO) {
         shellSync(context, command)
+    }
+
+    /**
+     * Blocking shell for lightweight telemetry (e.g. `/proc/stat`). Uses a short connect
+     * timeout so a missing ADB does not stall the vehicle-info poll loop.
+     */
+    fun runShellCommandQuick(
+        context: Context,
+        command: String,
+        connectTimeoutMs: Long = 400L,
+    ): ShellResult {
+        val safeCommand = command.trim()
+        if (safeCommand.isBlank()) return ShellResult(-1, "No command entered")
+        if (!isPortOpen()) return ShellResult(-1, "Local ADB port 5555 is not reachable")
+        val keyPair = getOrCreateKeyPair(context)
+        val dadb = tryConnect(keyPair, timeoutMs = connectTimeoutMs)
+            ?: return ShellResult(-1, "ADB is not authorized yet")
+        return try {
+            val result = dadb.shell(safeCommand)
+            ShellResult(result.exitCode, result.allOutput.trim())
+        } catch (e: Exception) {
+            ShellResult(-1, "Command failed: ${e.message}")
+        } finally {
+            runCatching { dadb.close() }
+        }
     }
 
     /**

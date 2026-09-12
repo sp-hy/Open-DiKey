@@ -47,8 +47,26 @@
   <uses-permission android:name="android.permission.BYDAUTO_SENSOR_GET" />
   <uses-permission android:name="android.permission.BYDAUTO_LIGHT_COMMON" />
   <uses-permission android:name="android.permission.BYDAUTO_LIGHT_GET" />
+  <uses-permission android:name="android.permission.BYDAUTO_TYRE_COMMON" />
+  <uses-permission android:name="android.permission.BYDAUTO_TYRE_GET" />
+  <uses-permission android:name="android.permission.BYDAUTO_STATISTIC_COMMON" />
+  <uses-permission android:name="android.permission.BYDAUTO_STATISTIC_GET" />
+  <uses-permission android:name="android.permission.BYDAUTO_SPEED_COMMON" />
+  <uses-permission android:name="android.permission.BYDAUTO_SPEED_GET" />
+  <uses-permission android:name="android.permission.BYDAUTO_GEARBOX_COMMON" />
+  <uses-permission android:name="android.permission.BYDAUTO_GEARBOX_GET" />
+  <uses-permission android:name="android.permission.BYDAUTO_ENGINE_COMMON" />
+  <uses-permission android:name="android.permission.BYDAUTO_ENGINE_GET" />
+  <uses-permission android:name="android.permission.BYDAUTO_CHARGING_COMMON" />
+  <uses-permission android:name="android.permission.BYDAUTO_CHARGING_GET" />
+  <uses-permission android:name="android.permission.BYDAUTO_ENERGY_COMMON" />
+  <uses-permission android:name="android.permission.BYDAUTO_ENERGY_GET" />
+  <uses-permission android:name="android.permission.BYDAUTO_INSTRUMENT_COMMON" />
+  <uses-permission android:name="android.permission.BYDAUTO_INSTRUMENT_GET" />
 
   <uses-feature android:name="android.hardware.usb.host" android:required="false" />
+  <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="false" />
+  <uses-feature android:name="android.hardware.sensor.gyroscope" android:required="false" />
 
   <uses-permission
     android:name="android.permission.QUERY_ALL_PACKAGES"
@@ -111,6 +129,16 @@
       android:name=".ButtonMappingActivity"
       android:exported="false"
       android:parentActivityName=".MainActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
+      android:name=".VehicleInfoActivity"
+      android:exported="false"
+      android:parentActivityName=".MainActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
+      android:name=".VehicleDumpActivity"
+      android:exported="false"
+      android:parentActivityName=".SettingsHubActivity"
       android:theme="@style/Theme.OpenDiKey" />
     <activity
       android:name=".MapEventActivity"

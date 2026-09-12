@@ -34,6 +34,9 @@ class MainActivity : OpenDiKeyActivity() {
         findViewById<android.view.View>(R.id.homeButtonsButton).setOnClickListener {
             startActivity(Intent(this, ButtonMappingActivity::class.java))
         }
+        findViewById<android.view.View>(R.id.homeVehicleInfoButton).setOnClickListener {
+            startActivity(Intent(this, VehicleInfoActivity::class.java))
+        }
         findViewById<android.widget.ImageButton>(R.id.mainSettingsButton).setOnClickListener {
             startActivity(Intent(this, SettingsHubActivity::class.java))
         }
