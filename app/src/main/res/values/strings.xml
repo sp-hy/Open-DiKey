@@ -120,6 +120,7 @@
   <string name="vehicle_info_block_tpms">TPMS</string>
   <string name="vehicle_info_block_imu">Tablet IMU</string>
   <string name="vehicle_info_block_attitude">Pitch / roll</string>
+  <string name="vehicle_info_attitude_split">Split</string>
   <string name="vehicle_info_block_tablet">Head unit</string>
   <string name="vehicle_info_row_cpu">CPU</string>
   <string name="vehicle_info_row_ram">RAM</string>
@@ -156,7 +157,6 @@
   <string name="vehicle_info_row_accel">Accel</string>
   <string name="vehicle_info_row_brake">Brake</string>
   <string name="vehicle_info_row_park">Park brake</string>
-  <string name="vehicle_info_row_epb">EPB</string>
   <string name="vehicle_info_row_power">Power</string>
   <string name="vehicle_info_row_rpm">RPM</string>
   <string name="vehicle_info_row_oil">Oil level</string>

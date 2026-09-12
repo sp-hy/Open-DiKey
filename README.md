@@ -8,6 +8,7 @@ Replaces the vendor app DiKey Smart Link (`迪铠智联`). Runs on DiLink 5 head
 
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/203e3468-4319-4792-8115-004902720a83" /><img width="400" alt="image" src="https://github.com/user-attachments/assets/38c9f9ac-c14b-47fd-9aca-f03c557aff9c" />
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/332d7a0f-0cef-4ad0-888a-090547291e89" /><img width="400" alt="image" src="https://github.com/user-attachments/assets/62957600-bbc8-445e-ad51-03ba85a635f3" />
+<img width="400" alt="image" src="https://github.com/user-attachments/assets/3d2ea2da-9456-43e0-b53a-2b65fdb2ad40" />
 
 ---
 

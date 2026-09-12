@@ -76,7 +76,6 @@ class BydVehicleInfoController(context: Context) {
         val gearLabel: String? = null,
         val gearRaw: Int? = null,
         val parkBrake: Int? = null,
-        val epb: Int? = null,
         val enginePowerKw: Double? = null,
         val engineRpm: Double? = null,
         val oilLevel: Double? = null,
@@ -169,7 +168,13 @@ class BydVehicleInfoController(context: Context) {
                 "Accel pedal: ${fmt(dynamics.accelPedalPct, "%")}  brake: ${fmt(dynamics.brakePedalPct, "%")}"
             )
             appendLine(
-                "Gear: ${dynamics.gearLabel ?: "—"} (raw=${dynamics.gearRaw ?: "—"})  park brake: ${fmt(dynamics.parkBrake)}  EPB: ${fmt(dynamics.epb)}"
+                "Gear: ${dynamics.gearLabel ?: "—"} (raw=${dynamics.gearRaw ?: "—"})  park brake: ${
+                    when (dynamics.parkBrake) {
+                        null -> "—"
+                        0 -> "Off"
+                        else -> "On"
+                    }
+                }"
             )
             appendLine(
                 "Power: ${fmt(dynamics.enginePowerKw, " kW")}  RPM: ${fmt(dynamics.engineRpm)}"
@@ -290,11 +295,21 @@ class BydVehicleInfoController(context: Context) {
         )
     }
 
-    /** Lightweight pedal-only read for a faster UI refresh loop. */
-    fun readPedals(): Pair<Double?, Double?> {
+    data class DriveLive(
+        val speedKmh: Double?,
+        val accelPedalPct: Double?,
+        val brakePedalPct: Double?,
+    )
+
+    /** Lightweight speed/pedal read for a faster UI refresh loop. */
+    fun readDriveLive(): DriveLive {
         if (devices.isEmpty()) bind()
-        val speed = devices["Speed"] ?: return null to null
-        return num(speed, "getAccelerateDeepness") to num(speed, "getBrakeDeepness")
+        val speed = devices["Speed"] ?: return DriveLive(null, null, null)
+        return DriveLive(
+            speedKmh = num(speed, "getCurrentSpeed"),
+            accelPedalPct = num(speed, "getAccelerateDeepness"),
+            brakePedalPct = num(speed, "getBrakeDeepness"),
+        )
     }
 
     private fun buildBattery(): BatteryInfo {
@@ -413,7 +428,6 @@ class BydVehicleInfoController(context: Context) {
             gearLabel = decodeGear(gear),
             gearRaw = gear,
             parkBrake = gearbox?.let { num(it, "getParkBrakeSwitch")?.toInt() },
-            epb = gearbox?.let { num(it, "getEPBState")?.toInt() },
             enginePowerKw = engine?.let { num(it, "getEnginePower") },
             engineRpm = engine?.let { num(it, "getEngineSpeed") },
             oilLevel = engine?.let { num(it, "getOilLevel") },

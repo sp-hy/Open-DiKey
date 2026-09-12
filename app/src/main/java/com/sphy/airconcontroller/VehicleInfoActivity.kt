@@ -14,9 +14,11 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.sphy.airconcontroller.byd.BydTyreController
 import com.sphy.airconcontroller.byd.BydVehicleInfoController
 import com.sphy.airconcontroller.byd.TabletSocReader
+import com.sphy.airconcontroller.storage.AppSettings
 import com.sphy.airconcontroller.ui.AttitudeHorizonView
 import com.sphy.airconcontroller.ui.GradientPercentBar
 import com.sphy.airconcontroller.ui.OpenDiKeyActivity
@@ -32,11 +34,14 @@ import kotlin.math.sqrt
 class VehicleInfoActivity : OpenDiKeyActivity() {
     private lateinit var info: BydVehicleInfoController
     private lateinit var tabletSoc: TabletSocReader
+    private lateinit var settings: AppSettings
     private lateinit var colBattery: LinearLayout
     private lateinit var colDynamics: LinearLayout
     private lateinit var colTyres: LinearLayout
     private var dashboardReady = false
     private var sensorManager: SensorManager? = null
+    private var lastPitchDeg: Double? = null
+    private var lastRollDeg: Double? = null
 
     private lateinit var socBar: PercentRow
     private lateinit var sohBar: PercentRow
@@ -57,6 +62,10 @@ class VehicleInfoActivity : OpenDiKeyActivity() {
     private lateinit var tyreSlots: List<TyreSlot>
     private lateinit var tyreUnboundHint: TextView
     private lateinit var attitudeView: AttitudeHorizonView
+    private lateinit var attitudePitchView: AttitudeHorizonView
+    private lateinit var attitudeRollView: AttitudeHorizonView
+    private lateinit var attitudeSplitRow: View
+    private lateinit var attitudeSplitSwitch: SwitchMaterial
     private lateinit var attitudePitch: TextView
     private lateinit var attitudeRoll: TextView
     private lateinit var tabletMetaHost: LinearLayout
@@ -69,9 +78,9 @@ class VehicleInfoActivity : OpenDiKeyActivity() {
             val az = event.values[2].toDouble()
             val pitch = Math.toDegrees(atan2(-ax, sqrt(ay * ay + az * az)))
             val roll = Math.toDegrees(atan2(ay, az))
-            attitudeView.setAttitude(pitch, roll)
-            attitudePitch.text = getString(R.string.vehicle_info_pitch_fmt, fmt(pitch, ""))
-            attitudeRoll.text = getString(R.string.vehicle_info_roll_fmt, fmt(roll, ""))
+            lastPitchDeg = pitch
+            lastRollDeg = roll
+            bindAttitude(pitch, roll)
         }
 
         override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) = Unit
@@ -83,6 +92,7 @@ class VehicleInfoActivity : OpenDiKeyActivity() {
 
         info = BydVehicleInfoController(this)
         tabletSoc = TabletSocReader(this)
+        settings = AppSettings(this)
         colBattery = findViewById(R.id.vehicleColBattery)
         colDynamics = findViewById(R.id.vehicleColDynamics)
         colTyres = findViewById(R.id.vehicleColTyres)
@@ -108,12 +118,14 @@ class VehicleInfoActivity : OpenDiKeyActivity() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (isActive) {
-                    val (accel, brake) = withContext(Dispatchers.IO) { info.readPedals() }
+                    val drive = withContext(Dispatchers.IO) { info.readDriveLive() }
                     if (dashboardReady) {
-                        accelBar.set(accel)
-                        brakeBar.set(brake)
+                        driveHero.visibility = View.VISIBLE
+                        driveHero.text = fmt(drive.speedKmh, " km/h")
+                        accelBar.set(drive.accelPedalPct)
+                        brakeBar.set(drive.brakePedalPct)
                     }
-                    delay(PEDAL_POLL_INTERVAL_MS)
+                    delay(DRIVE_POLL_INTERVAL_MS)
                 }
             }
         }
@@ -200,14 +212,44 @@ class VehicleInfoActivity : OpenDiKeyActivity() {
 
         val attitudeBlock = inflater.inflate(R.layout.view_attitude_block, colTyres, false)
         attitudeView = attitudeBlock.findViewById(R.id.attitudeHorizon)
+        attitudePitchView = attitudeBlock.findViewById(R.id.attitudePitchHorizon)
+        attitudeRollView = attitudeBlock.findViewById(R.id.attitudeRollHorizon)
+        attitudeSplitRow = attitudeBlock.findViewById(R.id.attitudeSplitRow)
+        attitudeSplitSwitch = attitudeBlock.findViewById(R.id.attitudeSplitSwitch)
         attitudePitch = attitudeBlock.findViewById(R.id.attitudePitchText)
         attitudeRoll = attitudeBlock.findViewById(R.id.attitudeRollText)
+        attitudePitchView.axisMode = AttitudeHorizonView.AxisMode.PITCH
+        attitudeRollView.axisMode = AttitudeHorizonView.AxisMode.ROLL
+        attitudeSplitSwitch.isChecked = settings.vehicleInfoAttitudeSplit
+        applyAttitudeSplitMode(settings.vehicleInfoAttitudeSplit)
+        attitudeSplitSwitch.setOnCheckedChangeListener { _, checked ->
+            settings.vehicleInfoAttitudeSplit = checked
+            applyAttitudeSplitMode(checked)
+            bindAttitude(lastPitchDeg, lastRollDeg)
+        }
         colTyres.addView(attitudeBlock)
 
         chassisHost = addSimpleBlock(colTyres, getString(R.string.vehicle_info_block_chassis))
         stretchColumnBlocks(colTyres)
 
         dashboardReady = true
+    }
+
+    private fun applyAttitudeSplitMode(split: Boolean) {
+        attitudeView.visibility = if (split) View.GONE else View.VISIBLE
+        attitudeSplitRow.visibility = if (split) View.VISIBLE else View.GONE
+    }
+
+    private fun bindAttitude(pitch: Double?, roll: Double?) {
+        if (!dashboardReady) return
+        if (settings.vehicleInfoAttitudeSplit) {
+            attitudePitchView.setAttitude(pitch, roll)
+            attitudeRollView.setAttitude(pitch, roll)
+        } else {
+            attitudeView.setAttitude(pitch, roll)
+        }
+        attitudePitch.text = getString(R.string.vehicle_info_pitch_fmt, fmt(pitch, ""))
+        attitudeRoll.text = getString(R.string.vehicle_info_roll_fmt, fmt(roll, ""))
     }
 
     /** Share leftover column height across blocks; drop last bottom margin so they sit flush. */
@@ -305,8 +347,7 @@ class VehicleInfoActivity : OpenDiKeyActivity() {
         appendTextRows(
             driveMetaHost,
             listOf(
-                getString(R.string.vehicle_info_row_park) to fmt(d.parkBrake),
-                getString(R.string.vehicle_info_row_epb) to fmt(d.epb),
+                getString(R.string.vehicle_info_row_park) to onOff(d.parkBrake),
             ),
         )
 
@@ -464,7 +505,11 @@ class VehicleInfoActivity : OpenDiKeyActivity() {
     private fun fmt(v: Double?, suffix: String = ""): String =
         if (v == null) "—" else trimNum(v) + suffix
 
-    private fun fmt(v: Int?): String = v?.toString() ?: "—"
+    private fun onOff(v: Int?): String = when (v) {
+        null -> "—"
+        0 -> "Off"
+        else -> "On"
+    }
 
     private fun trimNum(v: Double): String =
         if (v == v.toLong().toDouble()) v.toLong().toString()
@@ -489,6 +534,6 @@ class VehicleInfoActivity : OpenDiKeyActivity() {
 
     companion object {
         private const val POLL_INTERVAL_MS = 2_000L
-        private const val PEDAL_POLL_INTERVAL_MS = 200L
+        private const val DRIVE_POLL_INTERVAL_MS = 200L
     }
 }

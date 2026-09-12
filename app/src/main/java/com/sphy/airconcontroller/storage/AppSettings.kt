@@ -279,6 +279,14 @@ class AppSettings(context: Context) {
     fun liveLightingPeriod(): LightingPeriod =
         com.sphy.airconcontroller.lighting.LightingScheduler.currentPeriod()
             ?: editingLightingPeriod
+
+    /** Vehicle info pitch/roll: true = separate pitch and roll gauges. */
+    var vehicleInfoAttitudeSplit: Boolean
+        get() = prefs.getBoolean(KEY_VEHICLE_INFO_ATTITUDE_SPLIT, false)
+        set(value) {
+            prefs.edit().putBoolean(KEY_VEHICLE_INFO_ATTITUDE_SPLIT, value).apply()
+        }
+
     fun lightingProfile(period: LightingPeriod): LightingProfile {
         ensureLightingProfiles()
         val key = if (period == LightingPeriod.DAY) KEY_PROFILE_DAY else KEY_PROFILE_NIGHT
@@ -437,5 +445,6 @@ class AppSettings(context: Context) {
         private const val KEY_LIGHTING_EDIT = "lighting_edit_period"
         private const val KEY_PROFILE_DAY = "lighting_profile_day"
         private const val KEY_PROFILE_NIGHT = "lighting_profile_night"
+        private const val KEY_VEHICLE_INFO_ATTITUDE_SPLIT = "vehicle_info_attitude_split"
     }
 }

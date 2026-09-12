@@ -10,14 +10,16 @@ import com.sphy.airconcontroller.OpenDiKeyApp
 import com.sphy.airconcontroller.byd.AmbientLightProbe
 
 /**
- * Polls ambient light (vehicle sensor preferred) and applies day/night lighting profiles.
+ * Process-wide ambient day/night switch. Started from [OpenDiKeyApp] / [DiKeyListenService]
+ * so it keeps polling in any activity and while the listen service keeps the process alive.
  */
 object LightingScheduler {
     private const val TAG = "LightingScheduler"
-    private const val POLL_MS = 45_000L
+    private const val POLL_MS = 30_000L
 
     @Volatile private var probe: AmbientLightProbe? = null
     @Volatile private var lastApplied: LightingPeriod? = null
+    @Volatile private var pendingApply = false
     private val main = Handler(Looper.getMainLooper())
     private val pollRunnable = object : Runnable {
         override fun run() {
@@ -36,7 +38,7 @@ object LightingScheduler {
         val app = context.applicationContext
         appContext = app
         if (started) {
-            evaluate(app, forceApply = true)
+            evaluate(app, forceApply = pendingApply)
             return
         }
         started = true
@@ -60,7 +62,12 @@ object LightingScheduler {
     }
 
     fun sync(context: Context, forceApply: Boolean = true) {
-        start(context)
+        appContext = context.applicationContext
+        if (!started) {
+            start(context)
+            if (forceApply) evaluate(context.applicationContext, forceApply = true)
+            return
+        }
         evaluate(context.applicationContext, forceApply)
     }
 
@@ -70,11 +77,18 @@ object LightingScheduler {
             probe = it
         }
         val next = p.resolvePeriod(lastApplied)
-        if (forceApply || next != lastApplied) {
-            Log.i(TAG, "Apply $next via ${p.lastSource} (${p.lastDetail})")
-            OpenDiKeyApp.from(context).dikey.applyLightingPeriod(next)
-            lastApplied = next
-        }
+        val changed = next != lastApplied
+        if (!forceApply && !changed && !pendingApply) return
+
+        // Publish period before apply so liveLightingPeriod() / reconnect snapshots match.
+        lastApplied = next
+        val ok = OpenDiKeyApp.from(context).dikey.applyLightingPeriod(next)
+        pendingApply = !ok
+        Log.i(
+            TAG,
+            "Apply $next via ${p.lastSource} (${p.lastDetail}) " +
+                "changed=$changed force=$forceApply ok=$ok",
+        )
     }
 }
 

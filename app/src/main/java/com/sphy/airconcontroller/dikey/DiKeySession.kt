@@ -19,6 +19,7 @@ import com.sphy.airconcontroller.ble.ScannedBleDevice
 import com.sphy.airconcontroller.byd.BydAcController
 import com.sphy.airconcontroller.byd.BydSeatController
 import com.sphy.airconcontroller.storage.AppSettings
+import com.sphy.airconcontroller.storage.LedRestoreSnapshot
 import com.sphy.airconcontroller.usb.DiKeyUsbBridge
 import com.sphy.airconcontroller.usb.UsbHostSerial
 import com.sphy.airconcontroller.usb.UsbPermissionReceiver
@@ -59,7 +60,15 @@ class DiKeySession(private val app: Context) {
             _status.value = msg
             if (shouldLogStatus(msg)) emitLog(msg)
             when {
-                msg.startsWith("Ready") -> autoConnectInFlight = false
+                msg.startsWith("Ready") -> {
+                    autoConnectInFlight = false
+                    mainHandler.post {
+                        com.sphy.airconcontroller.lighting.LightingScheduler.sync(
+                            app,
+                            forceApply = true,
+                        )
+                    }
+                }
                 msg.startsWith("Disconnected") ||
                     msg.startsWith("Connection error") ||
                     msg.startsWith("STATE DISCONNECTED") ||
@@ -270,7 +279,13 @@ class DiKeySession(private val app: Context) {
 
     fun applyLightingPeriod(period: com.sphy.airconcontroller.lighting.LightingPeriod): Boolean {
         settings.applyProfileToLive(period)
-        val snapshot = settings.ledRestoreSnapshot()
+        // Build snapshot from the period being applied — not liveLightingPeriod(), which
+        // can still reflect the previous period until LightingScheduler updates lastApplied.
+        val profile = settings.lightingProfile(period)
+        val snapshot = LedRestoreSnapshot(
+            bars = profile.bars.filterKeys { it in 1..3 },
+            backlight = profile.backlight,
+        )
         controller.seedLedMemory(snapshot)
         if (!controller.isConnected) return false
         var ok = true

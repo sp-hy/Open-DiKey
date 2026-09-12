@@ -46,6 +46,16 @@ class DiKeyListenService : Service() {
         main.post {
             com.sphy.airconcontroller.lighting.LightingScheduler.sync(this, forceApply = true)
         }
+        // Keep ambient polling owned by the foreground listen service lifecycle too.
+        main.postDelayed(object : Runnable {
+            override fun run() {
+                com.sphy.airconcontroller.lighting.LightingScheduler.sync(
+                    this@DiKeyListenService,
+                    forceApply = false,
+                )
+                main.postDelayed(this, LIGHTING_TICK_MS)
+            }
+        }, LIGHTING_TICK_MS)
         scope.launch {
             AdbPermissionManager.ensureVehicleApiAccess(applicationContext)
             if (!AdbPermissionManager.isSetupComplete(applicationContext)) {
@@ -117,6 +127,7 @@ class DiKeyListenService : Service() {
         private const val TAG = "DiKeyListen"
         private const val CHANNEL_ID = "dikey_listen"
         private const val NOTIFICATION_ID = 42
+        private const val LIGHTING_TICK_MS = 30_000L
         private val CONNECT_RETRY_MS = longArrayOf(2_000L, 8_000L, 20_000L)
 
         fun start(context: Context) {

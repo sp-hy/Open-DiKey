@@ -61,8 +61,8 @@
                 android:layout_weight="1"
                 android:background="@drawable/bg_feature_tile"
                 android:clickable="true"
+                android:clipToOutline="true"
                 android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
                 android:orientation="vertical"
                 android:padding="24dp">
 
@@ -90,8 +90,8 @@
                 android:layout_weight="1"
                 android:background="@drawable/bg_feature_tile"
                 android:clickable="true"
+                android:clipToOutline="true"
                 android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
                 android:orientation="vertical"
                 android:padding="24dp">
 
@@ -127,8 +127,8 @@
                 android:layout_weight="1"
                 android:background="@drawable/bg_feature_tile"
                 android:clickable="true"
+                android:clipToOutline="true"
                 android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
                 android:orientation="vertical"
                 android:padding="24dp">
 
@@ -156,8 +156,8 @@
                 android:layout_weight="1"
                 android:background="@drawable/bg_feature_tile"
                 android:clickable="true"
+                android:clipToOutline="true"
                 android:focusable="true"
-                android:foreground="?attr/selectableItemBackground"
                 android:orientation="vertical"
                 android:padding="24dp">
 
