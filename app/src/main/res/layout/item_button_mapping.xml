@@ -35,7 +35,7 @@
         android:layout_marginTop="2dp"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
         android:textColor="@color/text_primary"
-        tools:text="Down long · not mapped" />
+        tools:text="Down long · Not mapped" />
 
     <TextView
         android:id="@+id/mappingUpLabel"
@@ -53,5 +53,5 @@
         android:layout_marginTop="2dp"
         android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
         android:textColor="@color/text_primary"
-        tools:text="Up long · not mapped" />
+        tools:text="Up long · Not mapped" />
 </LinearLayout>

@@ -203,7 +203,7 @@
   <string name="dial_right">Right dial</string>
   <string name="map_slot_dial_click">Click</string>
   <string name="map_slot_dial_long">Long</string>
-  <string name="map_slot_dial_climate_default">temp / fan</string>
+  <string name="map_slot_dial_climate_default">Temp / fan</string>
   <string name="map_event_pick_dial_fmt">%1$s · long-press</string>
   <string name="map_action_dial_subtitle_fmt">%1$s · %2$s</string>
   <string name="button_mapping_up_section">Buttons · tap to map a press</string>
@@ -222,7 +222,7 @@
   <string name="map_slot_down_long">Down long</string>
   <string name="map_slot_up">Up</string>
   <string name="map_slot_up_long">Up long</string>
-  <string name="map_slot_none">not mapped</string>
+  <string name="map_slot_none">Not mapped</string>
   <string name="map_slot_climate_fmt">Climate · %1$s</string>
   <string name="map_slot_open_app_fmt">Open %1$s</string>
   <string name="map_slot_open_app_missing_fmt">Open %1$s (not installed)</string>

@@ -28,6 +28,9 @@ class BydVehicleInfoController(context: Context) {
 
     private val devices = LinkedHashMap<String, Any?>()
 
+    /** VIN is static; caching avoids BYD OTA SDK log spam from getAutoVIN every poll. */
+    @Volatile private var cachedVin: String? = null
+
     @Volatile
     var lastBindError: String? = null
         private set
@@ -440,11 +443,19 @@ class BydVehicleInfoController(context: Context) {
             } else null,
             powerLevel = body?.let { num(it, "getPowerLevel") },
             batt12v = body?.let { num(it, "getBatteryVoltageLevel") },
-            vin = body?.let { invokeString(it, "getAutoVIN") ?: invokeString(it, "getVIN") },
+            vin = readVinCached(body),
             outsideTempC = ac?.let {
                 invokeNum(it, "getTemprature", 4) ?: invokeNum(it, "getTemperature", 4)
             },
         )
+    }
+
+    private fun readVinCached(body: Any?): String? {
+        cachedVin?.let { return it }
+        if (body == null) return null
+        val vin = invokeString(body, "getAutoVIN") ?: invokeString(body, "getVIN")
+        if (!vin.isNullOrBlank()) cachedVin = vin
+        return vin
     }
 
     fun dumpAll(): String {
