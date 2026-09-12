@@ -5,9 +5,6 @@
 >
   <uses-permission android:name="android.permission.INTERNET" />
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-  <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
-  <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
   <uses-permission android:name="android.permission.WAKE_LOCK" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CONNECTED_DEVICE" />
@@ -44,6 +41,9 @@
   <uses-permission android:name="android.permission.BYDAUTO_SETTING_COMMON" />
   <uses-permission android:name="android.permission.BYDAUTO_SETTING_GET" />
   <uses-permission android:name="android.permission.BYDAUTO_SETTING_SET" />
+  <uses-permission android:name="android.permission.BYDAUTO_ADAS_COMMON" />
+  <uses-permission android:name="android.permission.BYDAUTO_ADAS_GET" />
+  <uses-permission android:name="android.permission.BYDAUTO_ADAS_SET" />
   <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_COMMON" />
   <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_GET" />
   <uses-permission android:name="android.permission.BYDAUTO_BODYWORK_SET" />
@@ -77,6 +77,7 @@
     tools:ignore="QueryAllPackagesPermission" />
 
   <queries>
+    <package android:name="com.strike" />
     <intent>
       <action android:name="android.intent.action.MAIN" />
       <category android:name="android.intent.category.LAUNCHER" />
@@ -149,6 +150,11 @@
       android:parentActivityName=".MainActivity"
       android:theme="@style/Theme.OpenDiKey" />
     <activity
+      android:name=".AdasActivity"
+      android:exported="false"
+      android:parentActivityName=".MainActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
       android:name=".VehicleDumpActivity"
       android:exported="false"
       android:parentActivityName=".DebugHubActivity"
@@ -213,41 +219,6 @@
         <action android:name="com.sphy.airconcontroller.USB_PERMISSION" />
       </intent-filter>
     </receiver>
-    <activity
-      android:name=".boot.DiKeyWakeActivity"
-      android:exported="true"
-      android:excludeFromRecents="true"
-      android:noHistory="true"
-      android:taskAffinity=""
-      android:theme="@style/Theme.OpenDiKey.Wake" />
-    <receiver
-      android:name=".boot.DiKeyBootReceiver"
-      android:exported="true"
-      android:directBootAware="true">
-      <intent-filter>
-        <action android:name="android.intent.action.BOOT_COMPLETED" />
-        <action android:name="android.intent.action.LOCKED_BOOT_COMPLETED" />
-        <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
-        <action android:name="android.intent.action.USER_UNLOCKED" />
-        <action android:name="android.intent.action.USER_PRESENT" />
-        <action android:name="android.intent.action.ACTION_POWER_CONNECTED" />
-        <action android:name="android.intent.action.QUICKBOOT_POWERON" />
-        <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
-        <!-- BYD DiLink ACC / ignition (same family as trip-stats / Overdrive) -->
-        <action android:name="com.byd.action.ACC_ON" />
-        <action android:name="com.byd.action.IGN_ON" />
-        <action android:name="com.byd.action.ACC_OFF" />
-        <action android:name="com.byd.action.IGN_OFF" />
-        <action android:name="com.byd.accmode.ACC_MODE_CHANGED" />
-      </intent-filter>
-    </receiver>
-    <receiver
-      android:name=".boot.DiKeyRestartReceiver"
-      android:exported="false">
-      <intent-filter>
-        <action android:name="com.sphy.airconcontroller.action.DIKEY_RESTART" />
-      </intent-filter>
-    </receiver>
     <receiver
       android:name=".lighting.LightingAlarmReceiver"
       android:exported="false">
@@ -257,12 +228,11 @@
     </receiver>
     <service
       android:name=".boot.DiKeyListenService"
-      android:exported="true"
-      android:directBootAware="true"
+      android:exported="false"
       android:foregroundServiceType="connectedDevice|specialUse">
       <property
         android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-        android:value="DiKey USB/BLE accessory listener after vehicle boot" />
+        android:value="DiKey USB/BLE accessory listener while the app is running" />
     </service>
   </application>
 </manifest>

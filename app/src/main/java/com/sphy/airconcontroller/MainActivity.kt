@@ -1,26 +1,33 @@
 package com.sphy.airconcontroller
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Build
 import android.os.Bundle
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
-import com.sphy.airconcontroller.ui.OpenDiKeyActivity
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
-import com.sphy.airconcontroller.adb.AdbKeepAlive
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.sphy.airconcontroller.adb.AdbPermissionManager
 import com.sphy.airconcontroller.dikey.DiKeySession
+import com.sphy.airconcontroller.ui.OpenDiKeyActivity
+import com.sphy.airconcontroller.update.AppUpdater
+import com.sphy.airconcontroller.update.OverdriveInstaller
 import com.sphy.airconcontroller.usb.UsbPermissionReceiver
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainActivity : OpenDiKeyActivity() {
     private lateinit var session: DiKeySession
     private lateinit var connStatus: android.widget.TextView
+    private var sentryBusy = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,6 +44,12 @@ class MainActivity : OpenDiKeyActivity() {
         }
         findViewById<android.view.View>(R.id.homeVehicleInfoButton).setOnClickListener {
             startActivity(Intent(this, VehicleInfoActivity::class.java))
+        }
+        findViewById<android.view.View>(R.id.homeAdasButton).setOnClickListener {
+            startActivity(Intent(this, AdasActivity::class.java))
+        }
+        findViewById<android.view.View>(R.id.homeSentryButton).setOnClickListener {
+            openSentryOrInstall()
         }
         findViewById<android.widget.ImageButton>(R.id.mainDebugButton).setOnClickListener {
             startActivity(Intent(this, DebugHubActivity::class.java))
@@ -55,6 +68,138 @@ class MainActivity : OpenDiKeyActivity() {
         startAdbSetupIfNeeded()
         handleLaunchIntent(intent)
         maybeRequestBluetoothPermissions()
+    }
+
+    private fun openSentryOrInstall() {
+        if (sentryBusy) return
+        if (OverdriveInstaller.isInstalled(this)) {
+            val launch = OverdriveInstaller.launchIntent(this)
+            if (launch != null) {
+                try {
+                    startActivity(launch)
+                    return
+                } catch (_: ActivityNotFoundException) {
+                    // fall through to install prompt
+                }
+            }
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.sentry_install_dialog_title)
+            .setMessage(R.string.sentry_install_dialog_body)
+            .setNegativeButton(R.string.settings_update_later, null)
+            .setPositiveButton(R.string.settings_update_install) { _, _ ->
+                downloadAndInstallOverdrive()
+            }
+            .show()
+    }
+
+    private fun downloadAndInstallOverdrive() {
+        if (sentryBusy) return
+        sentryBusy = true
+        val progressDialog = MaterialAlertDialogBuilder(this)
+            .setTitle(R.string.sentry_install_dialog_title)
+            .setMessage(R.string.settings_updates_checking)
+            .setCancelable(false)
+            .create()
+        progressDialog.show()
+
+        lifecycleScope.launch {
+            try {
+                if (!ensureInstallAllowed(progressDialog)) {
+                    sentryBusy = false
+                    return@launch
+                }
+                withContext(Dispatchers.Main) {
+                    progressDialog.setMessage(getString(R.string.settings_updates_checking))
+                }
+                val release = OverdriveInstaller.fetchLatestRelease()
+                withContext(Dispatchers.Main) {
+                    progressDialog.setMessage(getString(R.string.settings_updates_downloading, 0))
+                }
+                val dest = OverdriveInstaller.cacheFile(this@MainActivity)
+                AppUpdater.downloadApk(release.apkUrl, dest) { downloaded, total ->
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        if (!progressDialog.isShowing) return@launch
+                        progressDialog.setMessage(
+                            if (total > 0L) {
+                                val pct = ((downloaded * 100L) / total).toInt().coerceIn(0, 100)
+                                getString(R.string.settings_updates_downloading, pct)
+                            } else {
+                                getString(
+                                    R.string.settings_updates_downloading_bytes,
+                                    downloaded / 1024L,
+                                )
+                            },
+                        )
+                    }
+                }
+                withContext(Dispatchers.Main) {
+                    progressDialog.setMessage(getString(R.string.settings_updates_installing))
+                    try {
+                        startActivity(AppUpdater.installApkIntent(this@MainActivity, dest))
+                        progressDialog.dismiss()
+                    } catch (e: ActivityNotFoundException) {
+                        progressDialog.dismiss()
+                        Toast.makeText(
+                            this@MainActivity,
+                            getString(
+                                R.string.settings_updates_failed,
+                                e.message ?: e.javaClass.simpleName,
+                            ),
+                            Toast.LENGTH_LONG,
+                        ).show()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    if (progressDialog.isShowing) progressDialog.dismiss()
+                    Toast.makeText(
+                        this@MainActivity,
+                        getString(
+                            R.string.settings_updates_failed,
+                            e.message ?: e.javaClass.simpleName,
+                        ),
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            } finally {
+                sentryBusy = false
+            }
+        }
+    }
+
+    private suspend fun ensureInstallAllowed(progressDialog: androidx.appcompat.app.AlertDialog): Boolean {
+        if (AppUpdater.canInstallPackages(this)) return true
+
+        val pkg = packageName
+        AdbPermissionManager.runShellBatch(
+            this,
+            listOf(
+                "appops set $pkg REQUEST_INSTALL_PACKAGES allow",
+                "cmd appops set $pkg REQUEST_INSTALL_PACKAGES allow",
+            ),
+        )
+        if (AppUpdater.canInstallPackages(this)) return true
+
+        val opened = withContext(Dispatchers.Main) {
+            AppUpdater.openInstallPermissionSettings(this@MainActivity)
+        }
+        if (opened) {
+            withContext(Dispatchers.Main) {
+                progressDialog.dismiss()
+                Toast.makeText(
+                    this@MainActivity,
+                    R.string.settings_updates_need_permission,
+                    Toast.LENGTH_LONG,
+                ).show()
+            }
+            return false
+        }
+
+        withContext(Dispatchers.Main) {
+            progressDialog.setMessage(getString(R.string.settings_updates_install_anyway))
+        }
+        return true
     }
 
     override fun onStart() {
@@ -114,10 +259,7 @@ class MainActivity : OpenDiKeyActivity() {
 
     private fun startAdbSetupIfNeeded() {
         lifecycleScope.launch {
-            AdbKeepAlive.ensure(this@MainActivity, "main", viaShell = true)
             AdbPermissionManager.ensureVehicleApiAccess(this@MainActivity)
-            AdbPermissionManager.ensureAutostartWhitelist(this@MainActivity)
-            AdbPermissionManager.ensureAccDaemon(this@MainActivity)
             if (!AdbPermissionManager.isSetupComplete(this@MainActivity)) {
                 AdbPermissionManager.runSetup(this@MainActivity)
             }

@@ -51,6 +51,9 @@ object AdbPermissionManager {
         "android.permission.BYDAUTO_SETTING_COMMON",
         "android.permission.BYDAUTO_SETTING_GET",
         "android.permission.BYDAUTO_SETTING_SET",
+        "android.permission.BYDAUTO_ADAS_COMMON",
+        "android.permission.BYDAUTO_ADAS_GET",
+        "android.permission.BYDAUTO_ADAS_SET",
         "android.permission.BYDAUTO_BODYWORK_COMMON",
         "android.permission.BYDAUTO_BODYWORK_GET",
         "android.permission.BYDAUTO_BODYWORK_SET",
@@ -85,29 +88,6 @@ object AdbPermissionManager {
         "appops set \$pkg RUN_IN_BACKGROUND allow",
         "appops set \$pkg RUN_ANY_IN_BACKGROUND allow",
         "appops set \$pkg WAKE_LOCK allow",
-    )
-
-    /**
-     * DiLink ACC / auto-start whitelist patches (trip-stats / Overdrive).
-     * Best-effort — firmware builds vary; failures are ignored.
-     */
-    private fun autostartWhitelistCommands(pkg: String): List<String> = listOf(
-        "dumpsys deviceidle whitelist +$pkg",
-        "appops set $pkg RUN_IN_BACKGROUND allow",
-        "appops set $pkg RUN_ANY_IN_BACKGROUND allow",
-        "cmd appops set $pkg RUN_IN_BACKGROUND allow",
-        "cmd appops set $pkg RUN_ANY_IN_BACKGROUND allow",
-        // Merge into BYD SSC / ACC whitelists when present.
-        "settings get global ssc_whitelist",
-        // Append pkg if missing (shell one-liner; no-op on stock Android).
-        "sh -c 'w=\$(settings get global ssc_whitelist 2>/dev/null); case \"\$w\" in *$pkg*) ;; *) settings put global ssc_whitelist \"\${w:+\$w,}$pkg\";; esac'",
-        "sh -c 'w=\$(settings get secure ssc_whitelist 2>/dev/null); case \"\$w\" in *$pkg*) ;; *) settings put secure ssc_whitelist \"\${w:+\$w,}$pkg\";; esac'",
-        // persist.sys.acc.whitelist is merged in ensureAutostartWhitelist (explicit setprop).
-        "service call accmodemanager 1 s16 '$pkg'",
-        "content call --uri content://com.byd.appstartup/whitelist --method add --arg $pkg",
-        // Ensure our listener can be started even if broadcasts were skipped.
-        "am start -n $pkg/com.sphy.airconcontroller.boot.DiKeyWakeActivity --activity-no-animation",
-        "am start-foreground-service -n $pkg/com.sphy.airconcontroller.boot.DiKeyListenService",
     )
 
     sealed class SetupState {
@@ -373,120 +353,6 @@ object AdbPermissionManager {
         }
     }
 
-    /** Refresh DiLink ACC / auto-start whitelists so the listener wakes without opening the UI. */
-    suspend fun ensureAutostartWhitelist(context: Context): Boolean = withContext(Dispatchers.IO) {
-        if (!isPortOpen()) return@withContext false
-        val pkg = context.packageName
-        val results = runShellBatch(context, autostartWhitelistCommands(pkg))
-        val anyOk = results.any { it.exitCode == 0 }
-
-        // Nested sh/setprop in the batch is fragile — merge ACC whitelist explicitly.
-        // Overdrive stays up across reboot because it is on this prop; we must be too.
-        val before = shellSync(context, "getprop persist.sys.acc.whitelist").output.trim()
-        if (!before.contains(pkg)) {
-            val next = when {
-                before.isBlank() || before.equals("null", ignoreCase = true) -> pkg
-                else -> "$before,$pkg"
-            }
-            val put = shellSync(context, "setprop persist.sys.acc.whitelist $next")
-            val after = shellSync(context, "getprop persist.sys.acc.whitelist").output.trim()
-            Log.w(TAG, "persist.sys.acc.whitelist '$before' -> '$after' (exit=${put.exitCode})")
-        } else {
-            Log.i(TAG, "persist.sys.acc.whitelist already has $pkg ($before)")
-        }
-
-        Log.i(TAG, "autostart whitelist refresh: ${results.size} cmds, anyOk=$anyOk")
-        anyOk || shellSync(context, "getprop persist.sys.acc.whitelist").output.contains(pkg)
-    }
-
-    /**
-     * Launch / keep the shell-uid ACC daemon that survives DiLink force-stop.
-     *
-     * Important: never `pkill -f DiKeyAccDaemon` from an inline `sh -c` — that pattern
-     * matches the starter shell itself and aborts before app_process starts.
-     *
-     * @param forceRestart kill + relaunch (e.g. after [Intent.ACTION_MY_PACKAGE_REPLACED])
-     */
-    suspend fun ensureAccDaemon(
-        context: Context,
-        forceRestart: Boolean = false,
-    ): Boolean = withContext(Dispatchers.IO) {
-        if (!isPortOpen()) {
-            Log.w(TAG, "ACC daemon: port $lastAdbHost:$ADB_PORT not open")
-            return@withContext false
-        }
-        val pkg = context.packageName
-        if (!forceRestart && isAccDaemonRunning(context)) {
-            Log.w(TAG, "ACC daemon already running")
-            return@withContext true
-        }
-
-        val ping = shellSync(context, "echo dikey-ok")
-        if (!ping.output.contains("dikey-ok")) {
-            Log.w(TAG, "ACC daemon: ADB shell not authorized (${ping.output.take(120)}) — re-running setup")
-            // Stale "setup complete" after reboot / key revoke — force grant path again.
-            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-                .edit().putBoolean(PREF_PERMISSIONS_GRANTED, false).apply()
-            runSetup(context)
-            val ping2 = shellSync(context, "echo dikey-ok")
-            if (!ping2.output.contains("dikey-ok")) {
-                Log.w(TAG, "ACC daemon: ADB still unauthorized after setup")
-                return@withContext false
-            }
-        }
-
-        val apkPath = shellSync(context, "pm path $pkg").output
-            .lineSequence()
-            .map { it.removePrefix("package:").trim() }
-            .firstOrNull { it.endsWith(".apk") }
-            ?: return@withContext false.also {
-                Log.w(TAG, "ACC daemon: pm path failed")
-            }
-
-        // Always rewrite the start script — APK path changes on every install/update.
-        // Script file keeps the class name out of the launcher cmdline (avoids self-pkill).
-        val script = buildString {
-            appendLine("#!/system/bin/sh")
-            appendLine("APK='$apkPath'")
-            appendLine("LOG=/sdcard/dikey-acc-daemon.log")
-            appendLine("MAIN=com.sphy.airconcontroller.daemon.DiKeyAccDaemon")
-            appendLine("for pid in \$(ls /proc 2>/dev/null); do")
-            appendLine("  case \"\$pid\" in *[!0-9]*|\"\") continue ;; esac")
-            appendLine("  cmd=\$(tr '\\0' ' ' < /proc/\$pid/cmdline 2>/dev/null) || continue")
-            appendLine("  case \"\$cmd\" in")
-            appendLine("    *app_process*\"\$MAIN\"*) kill \"\$pid\" 2>/dev/null ;;")
-            appendLine("  esac")
-            appendLine("done")
-            appendLine("sleep 0.2")
-            appendLine("rm -f \"\$LOG\"")
-            appendLine(
-                "nohup env CLASSPATH=\"\$APK\" /system/bin/app_process64 /system/bin \"\$MAIN\" " +
-                    ">\"\$LOG\" 2>&1 </dev/null &"
-            )
-            appendLine("echo \$!")
-        }
-        val b64 = android.util.Base64.encodeToString(
-            script.toByteArray(Charsets.UTF_8),
-            android.util.Base64.NO_WRAP,
-        )
-        val result = shellSync(
-            context,
-            "printf '%s' '$b64' | base64 -d > /sdcard/dikey-start-daemon.sh && " +
-                "chmod 755 /sdcard/dikey-start-daemon.sh && " +
-                "sh /sdcard/dikey-start-daemon.sh",
-        )
-        Log.w(TAG, "ACC daemon start: exit=${result.exitCode} out=${result.output.take(120)}")
-        delay(1_200)
-        val running = isAccDaemonRunning(context)
-        Log.w(TAG, "ACC daemon running=$running")
-        running
-    }
-
-    private fun isAccDaemonRunning(context: Context): Boolean {
-        val ps = shellSync(context, "ps -A -f").output
-        return ps.contains("com.sphy.airconcontroller.daemon.DiKeyAccDaemon")
-    }
-
     private suspend fun grantPermissionsAndClose(dadb: Dadb, context: Context): Boolean {
         return try {
             _state.value = SetupState.Granting
@@ -503,9 +369,6 @@ object AdbPermissionManager {
             applyVehicleApiAccess(dadb, pkg, hasHiddenApiConsent(context))
 
             dadb.close()
-
-            // Now that WRITE_SECURE_SETTINGS is granted, pin both ADB modes on.
-            AdbKeepAlive.ensure(context, "post-grant", viaShell = true)
 
             if (allGranted) {
                 context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -597,10 +460,6 @@ object AdbPermissionManager {
         }
         return hosts.toList()
     }
-
-    /** Blocking shell used by [AdbKeepAlive] when reinforcing setprop. */
-    fun runShellCommandBlocking(context: Context, command: String): ShellResult =
-        shellSync(context, command)
 
     private fun shellSync(context: Context, command: String): ShellResult = synchronized(adbLock) {
         val safeCommand = command.trim()

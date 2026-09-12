@@ -18,19 +18,18 @@ import androidx.core.content.ContextCompat
 import com.sphy.airconcontroller.MainActivity
 import com.sphy.airconcontroller.OpenDiKeyApp
 import com.sphy.airconcontroller.R
-import com.sphy.airconcontroller.adb.AdbKeepAlive
 import com.sphy.airconcontroller.adb.AdbPermissionManager
 import com.sphy.airconcontroller.lighting.LightingScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 /**
- * Keeps the process alive after boot / ACC so [com.sphy.airconcontroller.dikey.DiKeySession]
- * can talk to the C3 / DiKey without the UI on screen.
+ * Foreground listener so [com.sphy.airconcontroller.dikey.DiKeySession] can talk to
+ * the C3 / DiKey while the UI is in the background. Started when the app process
+ * is running (open Open DiKey once after power-on).
  */
 class DiKeyListenService : Service() {
     private val main = Handler(Looper.getMainLooper())
@@ -53,49 +52,24 @@ class DiKeyListenService : Service() {
                 main.postDelayed(this, LIGHTING_TICK_MS)
             }
         }, LIGHTING_TICK_MS)
-        scope.launch { runAdbSetupWithRetry() }
+        scope.launch {
+            AdbPermissionManager.ensureVehicleApiAccess(applicationContext)
+            if (!AdbPermissionManager.isSetupComplete(applicationContext)) {
+                AdbPermissionManager.runSetup(applicationContext)
+            }
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startAsForeground()
         OpenDiKeyApp.from(this).dikey.ensureConnected()
-        // Re-arm AlarmManager chain whenever something starts us (boot, ACC, restart).
-        DiKeyAutostart.scheduleRestarts(this)
         return START_STICKY
     }
 
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        super.onTaskRemoved(rootIntent)
-        Log.i(TAG, "task removed — scheduling listener restart")
-        DiKeyAutostart.scheduleImmediateRestart(this)
-    }
-
     override fun onDestroy() {
-        Log.i(TAG, "onDestroy — scheduling listener restart")
-        DiKeyAutostart.scheduleImmediateRestart(this)
         scope.cancel()
         main.removeCallbacksAndMessages(null)
         super.onDestroy()
-    }
-
-    private suspend fun runAdbSetupWithRetry() {
-        // adbd is often late after ACC_ON; retry like trip-stats delayed kicks.
-        repeat(ADB_RETRY_ATTEMPTS) { attempt ->
-            try {
-                AdbKeepAlive.ensure(applicationContext, "listen:${attempt + 1}", viaShell = false)
-                AdbPermissionManager.ensureVehicleApiAccess(applicationContext)
-                AdbPermissionManager.ensureAutostartWhitelist(applicationContext)
-                val daemonOk = AdbPermissionManager.ensureAccDaemon(applicationContext)
-                if (daemonOk) {
-                    Log.w(TAG, "ADB + ACC daemon ok (attempt ${attempt + 1})")
-                    return
-                }
-                Log.w(TAG, "ADB/daemon incomplete (attempt ${attempt + 1})")
-            } catch (t: Throwable) {
-                Log.w(TAG, "ADB setup error (attempt ${attempt + 1}): ${t.message}")
-            }
-            delay(ADB_RETRY_DELAY_MS)
-        }
     }
 
     private fun startAsForeground() {
@@ -150,8 +124,6 @@ class DiKeyListenService : Service() {
         private const val CHANNEL_ID = "dikey_listen"
         private const val NOTIFICATION_ID = 42
         private const val LIGHTING_TICK_MS = 30_000L
-        private const val ADB_RETRY_ATTEMPTS = 6
-        private const val ADB_RETRY_DELAY_MS = 10_000L
         private val CONNECT_RETRY_MS = longArrayOf(2_000L, 8_000L, 20_000L, 60_000L)
 
         fun start(context: Context) {

@@ -71,7 +71,7 @@ After that, the listener starts automatically on reboot.
 
 **Dials** — Left dial = passenger, right dial = driver. Click to switch between **temp** and **fan**, rotate to adjust.
 
-**Auto-start** — Open DiKey once after install so local ADB can start a shell-uid ACC daemon (same idea as Overdrive). That daemon survives DiLink force-stop and restarts the DiKey listener when the head unit wakes. Also allow the app in DiLink **auto-start / run in background**.
+**Background listener** — After you open Open DiKey, a foreground service keeps the USB/BLE DiKey link alive while the UI is in the background. Open the app once after power-on (see [autostart.md](autostart.md) for DiLink limitations).
 
 **In-app updates** — Settings → Check for updates pulls the latest `open-dikey.apk` from [GitHub Releases](https://github.com/sp-hy/Open-DiKey/releases).
 
@@ -173,3 +173,5 @@ Vendor manuals redistributed for offline use with purchased hardware; copyright 
 - [Color wheel](https://thenounproject.com/icon/color-wheel-8403265/) by Fahad Hashmi from [Noun Project](https://thenounproject.com/) (CC BY)
 - [Button](https://thenounproject.com/icon/button-8215836/) by Larea from [Noun Project](https://thenounproject.com/) (CC BY)
 - [Dial](https://thenounproject.com/icon/dial-4575189/) by Zach Bogart from [Noun Project](https://thenounproject.com/) (CC BY)
+- [adas](https://thenounproject.com/icon/adas-4256808/) by Arijit Dey from [Noun Project](https://thenounproject.com/) (CC BY)
+- [recording](https://thenounproject.com/icon/recording-7103165/) by Jonathan Wong from [Noun Project](https://thenounproject.com/) (CC BY)

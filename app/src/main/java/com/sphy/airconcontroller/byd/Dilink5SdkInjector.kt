@@ -8,9 +8,12 @@ import java.nio.ByteBuffer
 import java.util.zip.ZipFile
 
 /**
- * Load the OEM `bydauto` classes at runtime by injecting the already-installed
- * `com.byd.data.collect` APK into this app's classloader. Same approach as trip-stats
- * Dilink5SdkInjector: the proprietary SDK is never bundled or copied to disk.
+ * Load the OEM `bydauto` classes at runtime by injecting already-installed OEM APKs
+ * into this app's classloader. The proprietary SDK is never bundled or copied to disk.
+ *
+ * Package order matters (first match wins for not-yet-loaded classes):
+ * 1. [OEM_CARSETTINGS] — newer DiPilot (SpeedAdjustMode / SAM, etc.)
+ * 2. [OEM_DATA_COLLECT] — HVAC / climate baseline used by other controllers
  */
 object Dilink5SdkInjector {
     private const val TAG = "Dilink5SdkInjector"
@@ -31,8 +34,15 @@ object Dilink5SdkInjector {
         "android.hardware.bydauto.bodywork.BYDAutoBodyworkDevice",
         "android.hardware.bydauto.vehiclehealth.BYDAutoVehicleHealthDevice",
         "android.hardware.bydauto.collectdata.BYDAutoCollectDataDevice",
+        "android.hardware.bydauto.dipilot.BYDAutoDiPilotDevice",
+        "android.hardware.bydauto.adas.BYDAutoADASDevice",
     )
-    private const val OEM_PKG = "com.byd.data.collect"
+
+    /** Prefer CarSettings DiPilot (has SAM) over data.collect (ACC only). */
+    private val OEM_PACKAGES = listOf(
+        "com.byd.carsettings",
+        "com.byd.data.collect",
+    )
 
     @Volatile
     private var permanentlyUnavailable = false
@@ -40,15 +50,37 @@ object Dilink5SdkInjector {
     private var pristineLoader: ClassLoader? = null
     private var pristineDexElements: Array<*>? = null
 
+    /** Packages whose APK paths have already been merged into the classloader. */
+    private val injectedPackages = linkedSetOf<String>()
+
     @Synchronized
     fun ensure(context: Context): Boolean {
         val loader = context.classLoader
-        if (loadable(loader)) return true
         if (permanentlyUnavailable) return false
 
-        val apkPaths = oemApkPaths(context)
+        val missing = OEM_PACKAGES.filter { pkg ->
+            pkg !in injectedPackages && oemApkPaths(context, pkg).isNotEmpty()
+        }
+
+        // Already injected everything we can and at least one probe class loads.
+        if (missing.isEmpty()) {
+            return loadable(loader).also { ok ->
+                if (!ok) {
+                    Log.w(TAG, "OEM packages injected but no bydauto probe class loadable")
+                }
+            }
+        }
+
+        val apkPaths = OEM_PACKAGES.flatMap { pkg ->
+            oemApkPaths(context, pkg).also { paths ->
+                if (paths.isNotEmpty()) {
+                    Log.i(TAG, "oem $pkg → ${paths.size} apk path(s)")
+                }
+            }
+        }.distinct()
+
         if (apkPaths.isEmpty()) {
-            Log.w(TAG, "$OEM_PKG not found / no apk path")
+            Log.w(TAG, "no OEM bydauto APKs found (${OEM_PACKAGES.joinToString()})")
             permanentlyUnavailable = true
             return false
         }
@@ -82,8 +114,17 @@ object Dilink5SdkInjector {
             System.arraycopy(newEls, 0, combined, base.size, newEls.size)
             dexElementsF.set(pathList, combined)
 
+            OEM_PACKAGES.forEach { pkg ->
+                if (oemApkPaths(context, pkg).isNotEmpty()) injectedPackages.add(pkg)
+            }
+
             val ok = loadable(loader)
-            Log.i(TAG, "injected ${newEls.size} dex element(s); bydauto loadable=$ok")
+            val hasSam = diPilotHasMethod(loader, "getSpeedAdjustModeState")
+            Log.i(
+                TAG,
+                "injected ${newEls.size} dex element(s) from ${injectedPackages.joinToString()}; " +
+                    "bydauto loadable=$ok diPilotHasSAM=$hasSam",
+            )
             ok
         } catch (t: Throwable) {
             Log.w(TAG, "inject failed: ${t.javaClass.name}: ${t.message}")
@@ -93,11 +134,21 @@ object Dilink5SdkInjector {
 
     fun isLoadable(context: Context): Boolean = loadable(context.classLoader)
 
+    /** True if the loaded DiPilot class exposes SpeedAdjustMode (CarSettings SDK). */
+    fun diPilotHasSpeedAdjust(context: Context): Boolean =
+        diPilotHasMethod(context.classLoader, "getSpeedAdjustModeState")
+
+    private fun diPilotHasMethod(loader: ClassLoader, method: String): Boolean =
+        runCatching {
+            val cls = Class.forName("android.hardware.bydauto.dipilot.BYDAutoDiPilotDevice", false, loader)
+            cls.methods.any { it.name == method }
+        }.getOrDefault(false)
+
     private fun loadable(loader: ClassLoader): Boolean =
         PROBE_CLASSES.any { runCatching { Class.forName(it, false, loader) }.isSuccess }
 
-    private fun oemApkPaths(context: Context): List<String> = runCatching {
-        val ai = context.packageManager.getApplicationInfo(OEM_PKG, 0)
+    private fun oemApkPaths(context: Context, packageName: String): List<String> = runCatching {
+        val ai = context.packageManager.getApplicationInfo(packageName, 0)
         buildList {
             ai.sourceDir?.let { add(it) }
             ai.splitSourceDirs?.let { addAll(it) }

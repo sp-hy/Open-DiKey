@@ -86,13 +86,13 @@ class MapActionActivity : OpenDiKeyActivity() {
         }
 
         findViewById<android.widget.ImageButton>(R.id.mapEventBackButton).setOnClickListener {
-            if (showingSeatMenu) showMainOptions() else finish()
+            if (showingSeatMenu) showMainOptions(animate = true) else finish()
         }
 
         showMainOptions()
     }
 
-    private fun showMainOptions() {
+    private fun showMainOptions(animate: Boolean = false) {
         showingSeatMenu = false
         findViewById<TextView>(R.id.mapEventTitle).setText(R.string.map_action_title)
         findViewById<TextView>(R.id.mapEventSubtitle).text = subtitle()
@@ -135,7 +135,7 @@ class MapActionActivity : OpenDiKeyActivity() {
                 )
             )
         }
-        showOptions(options)
+        showOptions(options, animate = animate, forward = false)
     }
 
     private fun showSeatOptions() {
@@ -164,58 +164,94 @@ class MapActionActivity : OpenDiKeyActivity() {
                     title = getString(R.string.map_event_seat_vent_pass),
                     subtitle = getString(R.string.map_event_seat_vent_pass_hint)
                 )
-            )
+            ),
+            animate = true,
+            forward = true,
         )
     }
 
-    private fun showOptions(options: List<ActionOption>) {
-        val adapter = ActionAdapter(options)
+    private fun showOptions(
+        options: List<ActionOption>,
+        animate: Boolean = false,
+        forward: Boolean = true,
+    ) {
         val list = findViewById<ListView>(R.id.mapEventList)
-        list.adapter = adapter
-        list.setOnItemClickListener { _, _, position, _ ->
-            when (adapter.getItem(position).id) {
-                ACTION_CLEAR -> {
-                    clearMapping()
-                    finish()
-                }
-                ACTION_OPEN_APP -> pickApp.launch(appPickerIntent())
-                ACTION_SYSTEM -> pickAction.launch(systemPickerIntent())
-                ACTION_INTENT -> editIntent.launch(intentEditorIntent())
-                ACTION_SEAT -> showSeatOptions()
-                ACTION_SEAT_HEAT -> {
-                    saveSeat(
-                        ButtonAction.SeatCycle.Kind.HEAT,
-                        ButtonAction.SeatCycle.Zone.DRIVER,
-                        getString(R.string.map_event_seat_heat)
-                    )
-                    finish()
-                }
-                ACTION_SEAT_VENT -> {
-                    saveSeat(
-                        ButtonAction.SeatCycle.Kind.VENT,
-                        ButtonAction.SeatCycle.Zone.DRIVER,
-                        getString(R.string.map_event_seat_vent)
-                    )
-                    finish()
-                }
-                ACTION_SEAT_HEAT_PASS -> {
-                    saveSeat(
-                        ButtonAction.SeatCycle.Kind.HEAT,
-                        ButtonAction.SeatCycle.Zone.PASSENGER,
-                        getString(R.string.map_event_seat_heat_pass)
-                    )
-                    finish()
-                }
-                ACTION_SEAT_VENT_PASS -> {
-                    saveSeat(
-                        ButtonAction.SeatCycle.Kind.VENT,
-                        ButtonAction.SeatCycle.Zone.PASSENGER,
-                        getString(R.string.map_event_seat_vent_pass)
-                    )
-                    finish()
+        fun bind() {
+            val adapter = ActionAdapter(options)
+            list.adapter = adapter
+            list.setOnItemClickListener { _, _, position, _ ->
+                when (adapter.getItem(position).id) {
+                    ACTION_CLEAR -> {
+                        clearMapping()
+                        finish()
+                    }
+                    ACTION_OPEN_APP -> pickApp.launch(appPickerIntent())
+                    ACTION_SYSTEM -> pickAction.launch(systemPickerIntent())
+                    ACTION_INTENT -> editIntent.launch(intentEditorIntent())
+                    ACTION_SEAT -> showSeatOptions()
+                    ACTION_SEAT_HEAT -> {
+                        saveSeat(
+                            ButtonAction.SeatCycle.Kind.HEAT,
+                            ButtonAction.SeatCycle.Zone.DRIVER,
+                            getString(R.string.map_event_seat_heat)
+                        )
+                        finish()
+                    }
+                    ACTION_SEAT_VENT -> {
+                        saveSeat(
+                            ButtonAction.SeatCycle.Kind.VENT,
+                            ButtonAction.SeatCycle.Zone.DRIVER,
+                            getString(R.string.map_event_seat_vent)
+                        )
+                        finish()
+                    }
+                    ACTION_SEAT_HEAT_PASS -> {
+                        saveSeat(
+                            ButtonAction.SeatCycle.Kind.HEAT,
+                            ButtonAction.SeatCycle.Zone.PASSENGER,
+                            getString(R.string.map_event_seat_heat_pass)
+                        )
+                        finish()
+                    }
+                    ACTION_SEAT_VENT_PASS -> {
+                        saveSeat(
+                            ButtonAction.SeatCycle.Kind.VENT,
+                            ButtonAction.SeatCycle.Zone.PASSENGER,
+                            getString(R.string.map_event_seat_vent_pass)
+                        )
+                        finish()
+                    }
                 }
             }
         }
+
+        if (!animate) {
+            list.animate().cancel()
+            list.alpha = 1f
+            list.translationX = 0f
+            bind()
+            return
+        }
+
+        val density = resources.displayMetrics.density
+        val slideOut = if (forward) -24f * density else 24f * density
+        val slideIn = if (forward) 24f * density else -24f * density
+        list.animate().cancel()
+        list.animate()
+            .alpha(0f)
+            .translationX(slideOut)
+            .setDuration(140L)
+            .withEndAction {
+                bind()
+                list.translationX = slideIn
+                list.alpha = 0f
+                list.animate()
+                    .alpha(1f)
+                    .translationX(0f)
+                    .setDuration(160L)
+                    .start()
+            }
+            .start()
     }
 
     private fun saveSeat(

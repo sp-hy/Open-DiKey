@@ -8,6 +8,26 @@ import com.sphy.airconcontroller.dikey.LedMode
 import com.sphy.airconcontroller.dikey.LedPosition
 import com.sphy.airconcontroller.lighting.LightingPeriod
 
+/** Which ADAS editor mode is selected in the ADAS screen. */
+enum class AdasEditMode {
+    /** Live vehicle state via getters; toggles write immediately. */
+    DEFAULT,
+    /** Staged prefs; Apply writes all settings at once. */
+    CUSTOM,
+}
+
+/**
+ * Saved Custom ADAS profile (staged until Apply).
+ * [laneDeparture] is [BydAdasController.LaneDepartureMode] name: OFF / WARNING / PREVENT / BOTH.
+ * Defaults = all on.
+ */
+data class AdasCustomProfile(
+    val elka: Boolean = true,
+    val laneDeparture: String = "BOTH",
+    val aeb: Boolean = true,
+    val dms: Boolean = true,
+)
+
 data class LedRgb(val red: Int, val green: Int, val blue: Int) {
     fun clamped(): LedRgb = LedRgb(
         red.coerceIn(0, 255),
@@ -287,6 +307,37 @@ class AppSettings(context: Context) {
             prefs.edit().putBoolean(KEY_VEHICLE_INFO_ATTITUDE_SPLIT, value).apply()
         }
 
+    var adasEditMode: AdasEditMode
+        get() = if (prefs.getString(KEY_ADAS_EDIT_MODE, AdasEditMode.DEFAULT.name) == AdasEditMode.CUSTOM.name) {
+            AdasEditMode.CUSTOM
+        } else {
+            AdasEditMode.DEFAULT
+        }
+        set(value) {
+            prefs.edit().putString(KEY_ADAS_EDIT_MODE, value.name).apply()
+        }
+
+    fun adasCustomProfile(): AdasCustomProfile {
+        if (!prefs.contains(KEY_ADAS_CUSTOM_ELKA)) {
+            return AdasCustomProfile()
+        }
+        return AdasCustomProfile(
+            elka = prefs.getBoolean(KEY_ADAS_CUSTOM_ELKA, true),
+            laneDeparture = prefs.getString(KEY_ADAS_CUSTOM_LDA, "BOTH") ?: "BOTH",
+            aeb = prefs.getBoolean(KEY_ADAS_CUSTOM_AEB, true),
+            dms = prefs.getBoolean(KEY_ADAS_CUSTOM_DMS, true),
+        )
+    }
+
+    fun saveAdasCustomProfile(profile: AdasCustomProfile) {
+        prefs.edit()
+            .putBoolean(KEY_ADAS_CUSTOM_ELKA, profile.elka)
+            .putString(KEY_ADAS_CUSTOM_LDA, profile.laneDeparture)
+            .putBoolean(KEY_ADAS_CUSTOM_AEB, profile.aeb)
+            .putBoolean(KEY_ADAS_CUSTOM_DMS, profile.dms)
+            .apply()
+    }
+
     fun lightingProfile(period: LightingPeriod): LightingProfile {
         ensureLightingProfiles()
         val key = if (period == LightingPeriod.DAY) KEY_PROFILE_DAY else KEY_PROFILE_NIGHT
@@ -446,5 +497,10 @@ class AppSettings(context: Context) {
         private const val KEY_PROFILE_DAY = "lighting_profile_day"
         private const val KEY_PROFILE_NIGHT = "lighting_profile_night"
         private const val KEY_VEHICLE_INFO_ATTITUDE_SPLIT = "vehicle_info_attitude_split"
+        private const val KEY_ADAS_EDIT_MODE = "adas_edit_mode"
+        private const val KEY_ADAS_CUSTOM_ELKA = "adas_custom_elka"
+        private const val KEY_ADAS_CUSTOM_LDA = "adas_custom_lda"
+        private const val KEY_ADAS_CUSTOM_AEB = "adas_custom_aeb"
+        private const val KEY_ADAS_CUSTOM_DMS = "adas_custom_dms"
     }
 }

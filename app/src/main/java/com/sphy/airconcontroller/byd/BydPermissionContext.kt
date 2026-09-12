@@ -11,6 +11,15 @@ import android.content.pm.PackageManager
  * methods to run. Server-side IPC checks (if any) still apply.
  */
 class BydPermissionContext(base: Context) : ContextWrapper(base) {
+    /**
+     * DiPilot/ADAS `getInstance` stores `context.getApplicationContext()`. Without this,
+     * our permission bypass is discarded and `enforcePermission` fails on SET paths.
+     */
+    override fun getApplicationContext(): Context {
+        val app = baseContext.applicationContext
+        return if (app === this || app === baseContext) this else BydPermissionContext(app)
+    }
+
     override fun checkPermission(permission: String, pid: Int, uid: Int): Int {
         if (isBydAuto(permission)) return PackageManager.PERMISSION_GRANTED
         return super.checkPermission(permission, pid, uid)
