@@ -28,6 +28,8 @@
         <item name="colorSurface">@color/surface</item>
         <item name="colorOnSurface">@color/text_primary</item>
         <item name="materialButtonStyle">@style/Widget.OpenDiKey.Button</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.OpenDiKey.AlertDialog</item>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.OpenDiKey.MaterialAlertDialog</item>
     </style>
 
     <style name="Widget.OpenDiKey.Button" parent="Widget.MaterialComponents.Button.OutlinedButton">
@@ -36,6 +38,52 @@
         <item name="backgroundTint">@color/open_dikey_button_bg</item>
         <item name="android:textColor">@color/open_dikey_button_text</item>
         <item name="rippleColor">@color/accent_orange_soft</item>
+    </style>
+
+    <!-- Match main outlined buttons; clear fill + orange stroke (no nested Material fill layers). -->
+    <style name="Widget.OpenDiKey.DialogButton" parent="Widget.MaterialComponents.Button.OutlinedButton">
+        <item name="strokeColor">@color/accent_orange</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="backgroundTint">@color/surface</item>
+        <item name="android:textColor">@color/accent_orange</item>
+        <item name="rippleColor">@color/accent_orange_soft</item>
+        <item name="elevation">0dp</item>
+        <item name="android:stateListAnimator">@null</item>
+        <item name="android:minHeight">40dp</item>
+        <item name="android:minWidth">64dp</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:layout_marginStart">12dp</item>
+    </style>
+
+    <style name="Widget.OpenDiKey.DialogButtonBar" parent="Widget.AppCompat.ButtonBar.AlertDialog">
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:paddingTop">8dp</item>
+        <item name="android:paddingBottom">16dp</item>
+    </style>
+
+    <style name="ThemeOverlay.OpenDiKey.AlertDialog" parent="ThemeOverlay.AppCompat.Dialog.Alert">
+        <item name="android:background">@color/surface</item>
+        <item name="colorAccent">@color/accent_orange</item>
+        <item name="textColorAlertDialogListItem">@color/text_primary</item>
+        <item name="buttonBarStyle">@style/Widget.OpenDiKey.DialogButtonBar</item>
+        <item name="buttonBarButtonStyle">@style/Widget.OpenDiKey.DialogButton</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.OpenDiKey.DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.OpenDiKey.DialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.OpenDiKey.DialogButton</item>
+    </style>
+
+    <style name="ThemeOverlay.OpenDiKey.MaterialAlertDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="buttonBarStyle">@style/Widget.OpenDiKey.DialogButtonBar</item>
+        <item name="materialButtonStyle">@style/Widget.OpenDiKey.DialogButton</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.OpenDiKey.DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.OpenDiKey.DialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.OpenDiKey.DialogButton</item>
     </style>
 
     <style name="Widget.OpenDiKey.ColorSeekBar" parent="Widget.AppCompat.SeekBar">

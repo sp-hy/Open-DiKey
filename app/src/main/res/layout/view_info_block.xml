@@ -15,7 +15,7 @@
         android:textAppearance="@style/TextAppearance.MaterialComponents.Subtitle2"
         android:textColor="@color/accent_orange"
         android:textStyle="bold"
-        tools:text="Battery" />
+        tools:text="Battery &amp; Fuel" />
 
     <TextView
         android:id="@+id/infoBlockHero"

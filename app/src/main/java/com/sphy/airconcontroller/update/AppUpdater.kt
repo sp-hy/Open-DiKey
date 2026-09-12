@@ -109,11 +109,32 @@ object AppUpdater {
     fun canInstallPackages(context: Context): Boolean =
         context.packageManager.canRequestPackageInstalls()
 
-    fun installPermissionSettingsIntent(context: Context): Intent =
-        Intent(
-            Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-            Uri.parse("package:${context.packageName}"),
-        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+    /**
+     * Opens a settings screen for install permission when one exists.
+     * Returns false on DiLink / devices that ship no matching activity.
+     */
+    fun openInstallPermissionSettings(context: Context): Boolean {
+        val candidates = listOf(
+            Intent(
+                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                Uri.parse("package:${context.packageName}"),
+            ),
+            Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES),
+            Intent(Settings.ACTION_SECURITY_SETTINGS),
+            Intent(
+                Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                Uri.parse("package:${context.packageName}"),
+            ),
+        )
+        for (intent in candidates) {
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            if (intent.resolveActivity(context.packageManager) != null) {
+                context.startActivity(intent)
+                return true
+            }
+        }
+        return false
+    }
 
     fun installApkIntent(context: Context, apk: File): Intent {
         val uri = FileProvider.getUriForFile(

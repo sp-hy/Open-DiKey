@@ -1,13 +1,15 @@
 package com.sphy.airconcontroller
 
+import android.content.ActivityNotFoundException
 import android.os.Bundle
 import android.view.View
 import android.widget.Button
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.sphy.airconcontroller.adb.AdbPermissionManager
 import com.sphy.airconcontroller.ui.OpenDiKeyActivity
 import com.sphy.airconcontroller.update.AppUpdater
 import kotlinx.coroutines.Dispatchers
@@ -61,7 +63,7 @@ class SettingsHubActivity : OpenDiKeyActivity() {
     }
 
     private fun promptInstall(release: AppUpdater.LatestRelease, current: String) {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle(R.string.settings_update_dialog_title)
             .setMessage(
                 getString(
@@ -79,12 +81,6 @@ class SettingsHubActivity : OpenDiKeyActivity() {
 
     private fun downloadAndInstall(release: AppUpdater.LatestRelease) {
         if (busy) return
-        if (!AppUpdater.canInstallPackages(this)) {
-            statusText.text = getString(R.string.settings_updates_need_permission)
-            startActivity(AppUpdater.installPermissionSettingsIntent(this))
-            return
-        }
-
         setBusy(true, getString(R.string.settings_updates_downloading, 0))
         progress.visibility = View.VISIBLE
         progress.isIndeterminate = true
@@ -92,6 +88,7 @@ class SettingsHubActivity : OpenDiKeyActivity() {
 
         lifecycleScope.launch {
             try {
+                if (!ensureInstallAllowed()) return@launch
                 val dest = AppUpdater.updateCacheFile(this@SettingsHubActivity)
                 AppUpdater.downloadApk(release.apkUrl, dest) { downloaded, total ->
                     lifecycleScope.launch(Dispatchers.Main) {
@@ -112,7 +109,17 @@ class SettingsHubActivity : OpenDiKeyActivity() {
                 withContext(Dispatchers.Main) {
                     setBusy(false, getString(R.string.settings_updates_installing))
                     progress.visibility = View.GONE
-                    startActivity(AppUpdater.installApkIntent(this@SettingsHubActivity, dest))
+                    try {
+                        startActivity(AppUpdater.installApkIntent(this@SettingsHubActivity, dest))
+                    } catch (e: ActivityNotFoundException) {
+                        setBusy(
+                            false,
+                            getString(
+                                R.string.settings_updates_failed,
+                                e.message ?: e.javaClass.simpleName,
+                            ),
+                        )
+                    }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -132,6 +139,39 @@ class SettingsHubActivity : OpenDiKeyActivity() {
                 }
             }
         }
+    }
+
+    /**
+     * DiLink often has no "unknown apps" settings screen. Prefer ADB grant; if that fails and a
+     * settings UI exists, open it and pause; otherwise continue and let the package installer decide.
+     */
+    private suspend fun ensureInstallAllowed(): Boolean {
+        if (AppUpdater.canInstallPackages(this)) return true
+
+        val pkg = packageName
+        AdbPermissionManager.runShellBatch(
+            this,
+            listOf(
+                "appops set $pkg REQUEST_INSTALL_PACKAGES allow",
+                "cmd appops set $pkg REQUEST_INSTALL_PACKAGES allow",
+            ),
+        )
+        if (AppUpdater.canInstallPackages(this)) return true
+
+        val opened = withContext(Dispatchers.Main) {
+            AppUpdater.openInstallPermissionSettings(this@SettingsHubActivity)
+        }
+        if (opened) {
+            withContext(Dispatchers.Main) {
+                setBusy(false, getString(R.string.settings_updates_need_permission))
+            }
+            return false
+        }
+
+        withContext(Dispatchers.Main) {
+            statusText.text = getString(R.string.settings_updates_install_anyway)
+        }
+        return true
     }
 
     private fun setBusy(value: Boolean, status: String) {
