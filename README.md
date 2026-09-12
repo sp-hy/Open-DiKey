@@ -73,6 +73,8 @@ After that, the listener starts automatically on reboot.
 
 **Auto-start** — A quiet background notification keeps the DiKey working after the UI closes or the car restarts.
 
+**In-app updates** — Settings → Check for updates pulls the latest `open-dikey.apk` from [GitHub Releases](https://github.com/sp-hy/Open-DiKey/releases).
+
 ---
 
 ## Button reference
@@ -93,6 +95,33 @@ After that, the listener starts automatically on reboot.
 ---
 
 ## For developers
+
+### Release signing
+
+GitHub Actions builds a **signed release** APK (required for in-app updates). Create a keystore once and add **repository secrets**:
+
+```powershell
+# Windows
+.\scripts\create-release-keystore.ps1
+```
+
+```bash
+# macOS / Linux
+./scripts/create-release-keystore.sh
+```
+
+Then in the GitHub repo → **Settings → Secrets and variables → Actions → Repository secrets**, add:
+
+| Secret | Value |
+| ------ | ----- |
+| `SIGNING_KEYSTORE_BASE64` | Base64 of the `.jks` (printed by the script) |
+| `SIGNING_STORE_PASSWORD` | Keystore password |
+| `SIGNING_KEY_ALIAS` | Usually `open-dikey` |
+| `SIGNING_KEY_PASSWORD` | Key password |
+
+Keep the `.jks` and passwords offline — never commit them.
+
+**Migration note:** Older builds were debug-signed (and each CI runner used a different debug key). The first release-signed install may require uninstalling the old APK once; later updates install over the same signing key.
 
 ### Source structure
 

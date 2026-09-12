@@ -16,6 +16,10 @@
 .tmp/
 local.properties
 /ref
+*.jks
+*.keystore
+keystore.properties
+release.jks
 
 # Vendor reverse-engineering dumps (jadx, tools, APK copies).
 # Keep protocol research notes only.

@@ -42,6 +42,16 @@
         </LinearLayout>
 
         <ImageButton
+            android:id="@+id/mainDebugButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/debug_menu_title"
+            android:padding="12dp"
+            android:src="@drawable/ic_debug"
+            android:tint="@color/text_primary" />
+
+        <ImageButton
             android:id="@+id/mainSettingsButton"
             android:layout_width="48dp"
             android:layout_height="48dp"

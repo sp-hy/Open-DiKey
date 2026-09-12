@@ -3,6 +3,8 @@
   xmlns:android="http://schemas.android.com/apk/res/android"
   xmlns:tools="http://schemas.android.com/tools"
 >
+  <uses-permission android:name="android.permission.INTERNET" />
+  <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
   <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
   <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
@@ -104,6 +106,15 @@
     android:supportsRtl="true"
     android:theme="@style/Theme.AirconController"
   >
+    <provider
+      android:name="androidx.core.content.FileProvider"
+      android:authorities="${applicationId}.fileprovider"
+      android:exported="false"
+      android:grantUriPermissions="true">
+      <meta-data
+        android:name="android.support.FILE_PROVIDER_PATHS"
+        android:resource="@xml/file_paths" />
+    </provider>
     <activity
       android:name=".MainActivity"
       android:exported="true"
@@ -138,7 +149,7 @@
     <activity
       android:name=".VehicleDumpActivity"
       android:exported="false"
-      android:parentActivityName=".SettingsHubActivity"
+      android:parentActivityName=".DebugHubActivity"
       android:theme="@style/Theme.OpenDiKey" />
     <activity
       android:name=".MapEventActivity"
@@ -167,6 +178,11 @@
       android:parentActivityName=".MapActionActivity"
       android:theme="@style/Theme.OpenDiKey" />
     <activity
+      android:name=".DebugHubActivity"
+      android:exported="false"
+      android:parentActivityName=".MainActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
       android:name=".SettingsHubActivity"
       android:exported="false"
       android:parentActivityName=".MainActivity"
@@ -174,19 +190,19 @@
     <activity
       android:name=".ClimateTestActivity"
       android:exported="false"
-      android:parentActivityName=".SettingsHubActivity"
+      android:parentActivityName=".DebugHubActivity"
       android:theme="@style/Theme.OpenDiKey" />
     <activity
       android:name=".DiKeyProbeActivity"
       android:exported="true"
       android:launchMode="singleTop"
-      android:parentActivityName=".SettingsHubActivity"
+      android:parentActivityName=".DebugHubActivity"
       android:theme="@style/Theme.OpenDiKey" />
     <activity
       android:name=".UsbProbeActivity"
       android:exported="true"
       android:launchMode="singleTop"
-      android:parentActivityName=".SettingsHubActivity"
+      android:parentActivityName=".DebugHubActivity"
       android:theme="@style/Theme.OpenDiKey" />
     <receiver
       android:name=".usb.UsbPermissionReceiver"

@@ -39,8 +39,7 @@
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
+        android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingStart="20dp"
         android:paddingEnd="20dp"
@@ -48,135 +47,54 @@
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_marginBottom="12dp"
-            android:layout_weight="1"
-            android:orientation="horizontal">
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_feature_tile"
+            android:clipToOutline="true"
+            android:orientation="vertical"
+            android:padding="24dp">
 
-            <LinearLayout
-                android:id="@+id/openClimateButton"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginEnd="12dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_feature_tile"
-                android:clickable="true"
-                android:clipToOutline="true"
-                android:focusable="true"
-                android:orientation="vertical"
-                android:padding="24dp">
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/settings_updates_title"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
+                android:textColor="@color/text_primary"
+                android:textStyle="bold" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/menu_climate"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
-                    android:textColor="@color/text_primary"
-                    android:textStyle="bold" />
+            <TextView
+                android:id="@+id/settingsVersionText"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                android:textColor="@color/text_muted"
+                tools:text="Installed: 2026.09.12-0357" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="@string/menu_climate_desc"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/text_muted" />
-            </LinearLayout>
+            <TextView
+                android:id="@+id/settingsUpdateStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="@string/settings_updates_idle"
+                android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
+                android:textColor="@color/text_muted" />
 
-            <LinearLayout
-                android:id="@+id/openDikeyButton"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:background="@drawable/bg_feature_tile"
-                android:clickable="true"
-                android:clipToOutline="true"
-                android:focusable="true"
-                android:orientation="vertical"
-                android:padding="24dp">
+            <ProgressBar
+                android:id="@+id/settingsUpdateProgress"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:indeterminate="false"
+                android:max="100"
+                android:visibility="gone" />
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/menu_dikey"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
-                    android:textColor="@color/text_primary"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="@string/menu_dikey_desc"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/text_muted" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="horizontal">
-
-            <LinearLayout
-                android:id="@+id/openUsbButton"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_marginEnd="12dp"
-                android:layout_weight="1"
-                android:background="@drawable/bg_feature_tile"
-                android:clickable="true"
-                android:clipToOutline="true"
-                android:focusable="true"
-                android:orientation="vertical"
-                android:padding="24dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/menu_usb"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
-                    android:textColor="@color/text_primary"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="@string/menu_usb_desc"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/text_muted" />
-            </LinearLayout>
-
-            <LinearLayout
-                android:id="@+id/openVehicleDumpButton"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:background="@drawable/bg_feature_tile"
-                android:clickable="true"
-                android:clipToOutline="true"
-                android:focusable="true"
-                android:orientation="vertical"
-                android:padding="24dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/menu_vehicle_dump"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Headline6"
-                    android:textColor="@color/text_primary"
-                    android:textStyle="bold" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:text="@string/menu_vehicle_dump_desc"
-                    android:textAppearance="@style/TextAppearance.MaterialComponents.Body2"
-                    android:textColor="@color/text_muted" />
-            </LinearLayout>
+            <Button
+                android:id="@+id/settingsCheckUpdateButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/settings_check_updates" />
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>
