@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import com.sphy.airconcontroller.OpenDiKeyApp
 import com.sphy.airconcontroller.byd.AmbientLightProbe
@@ -12,20 +13,37 @@ import com.sphy.airconcontroller.byd.AmbientLightProbe
 /**
  * Process-wide ambient day/night switch. Started from [OpenDiKeyApp] / [DiKeyListenService]
  * so it keeps polling in any activity and while the listen service keeps the process alive.
+ *
+ * Color apply waits until [AmbientLightProbe] has a cabin reading (not clock-only), so cold
+ * boot does not paint the stock day-red profile. Dial/temp restore is independent.
  */
 object LightingScheduler {
     private const val TAG = "LightingScheduler"
     private const val POLL_MS = 30_000L
+    private const val WAIT_POLL_MS = 2_000L
+    private const val WAIT_TIMEOUT_MS = 90_000L
 
     @Volatile private var probe: AmbientLightProbe? = null
     @Volatile private var lastApplied: LightingPeriod? = null
     @Volatile private var pendingApply = false
+    @Volatile private var waitingForCabin = false
+    private var waitStartedElapsed = 0L
     private val main = Handler(Looper.getMainLooper())
     private val pollRunnable = object : Runnable {
         override fun run() {
             val ctx = appContext ?: return
             evaluate(ctx, forceApply = false)
             main.postDelayed(this, POLL_MS)
+        }
+    }
+    private val waitPollRunnable = object : Runnable {
+        override fun run() {
+            val ctx = appContext ?: return
+            if (!waitingForCabin && !pendingApply) return
+            evaluate(ctx, forceApply = pendingApply || waitingForCabin)
+            if (waitingForCabin || pendingApply) {
+                main.postDelayed(this, WAIT_POLL_MS)
+            }
         }
     }
 
@@ -38,7 +56,7 @@ object LightingScheduler {
         val app = context.applicationContext
         appContext = app
         if (started) {
-            evaluate(app, forceApply = pendingApply)
+            evaluate(app, forceApply = pendingApply || waitingForCabin)
             return
         }
         started = true
@@ -52,8 +70,10 @@ object LightingScheduler {
 
     fun stop() {
         main.removeCallbacks(pollRunnable)
+        main.removeCallbacks(waitPollRunnable)
         probe?.stopAndroidSensor()
         started = false
+        waitingForCabin = false
     }
 
     /** @deprecated Alarms replaced by ambient-light polling; kept for receiver compatibility. */
@@ -76,7 +96,35 @@ object LightingScheduler {
             it.startAndroidSensor()
             probe = it
         }
-        val next = p.resolvePeriod(lastApplied)
+        val resolution = p.resolvePeriod(lastApplied)
+        if (!resolution.reliable) {
+            if (!waitingForCabin) {
+                waitingForCabin = true
+                waitStartedElapsed = SystemClock.elapsedRealtime()
+            }
+            val waited = SystemClock.elapsedRealtime() - waitStartedElapsed
+            if (waited < WAIT_TIMEOUT_MS) {
+                pendingApply = true
+                scheduleWaitPoll()
+                Log.i(
+                    TAG,
+                    "Defer color apply — waiting for cabin ambient " +
+                        "(${p.lastSource}: ${p.lastDetail}, ${waited}ms)",
+                )
+                return
+            }
+            Log.w(
+                TAG,
+                "Cabin ambient still unavailable after ${waited}ms — using clock fallback",
+            )
+            waitingForCabin = false
+        } else if (waitingForCabin) {
+            Log.i(TAG, "Cabin ambient ready via ${p.lastSource} (${p.lastDetail})")
+            waitingForCabin = false
+            main.removeCallbacks(waitPollRunnable)
+        }
+
+        val next = resolution.period
         val changed = next != lastApplied
         if (!forceApply && !changed && !pendingApply) return
 
@@ -84,11 +132,17 @@ object LightingScheduler {
         lastApplied = next
         val ok = OpenDiKeyApp.from(context).dikey.applyLightingPeriod(next)
         pendingApply = !ok
+        if (pendingApply) scheduleWaitPoll()
         Log.i(
             TAG,
             "Apply $next via ${p.lastSource} (${p.lastDetail}) " +
                 "changed=$changed force=$forceApply ok=$ok",
         )
+    }
+
+    private fun scheduleWaitPoll() {
+        main.removeCallbacks(waitPollRunnable)
+        main.postDelayed(waitPollRunnable, WAIT_POLL_MS)
     }
 }
 

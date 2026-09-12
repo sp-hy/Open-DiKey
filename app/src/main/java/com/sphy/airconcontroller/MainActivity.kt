@@ -12,6 +12,7 @@ import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.sphy.airconcontroller.adb.AdbKeepAlive
 import com.sphy.airconcontroller.adb.AdbPermissionManager
 import com.sphy.airconcontroller.dikey.DiKeySession
 import com.sphy.airconcontroller.usb.UsbPermissionReceiver
@@ -113,7 +114,10 @@ class MainActivity : OpenDiKeyActivity() {
 
     private fun startAdbSetupIfNeeded() {
         lifecycleScope.launch {
+            AdbKeepAlive.ensure(this@MainActivity, "main", viaShell = true)
             AdbPermissionManager.ensureVehicleApiAccess(this@MainActivity)
+            AdbPermissionManager.ensureAutostartWhitelist(this@MainActivity)
+            AdbPermissionManager.ensureAccDaemon(this@MainActivity)
             if (!AdbPermissionManager.isSetupComplete(this@MainActivity)) {
                 AdbPermissionManager.runSetup(this@MainActivity)
             }

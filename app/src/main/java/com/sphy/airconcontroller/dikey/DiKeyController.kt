@@ -222,6 +222,11 @@ class DiKeyController(
         onStatus("Will restore LED $summary · keys $keys")
     }
 
+    /** Skip LED restore on connect until [LightingScheduler] has a cabin reading. */
+    fun clearPendingLed() {
+        pendingLed = null
+    }
+
     fun restoreSeededDialsToDevice(): Boolean {
         if (!ready) return false
         val pending = pendingRestore

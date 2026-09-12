@@ -315,7 +315,12 @@ class DiKeySession(private val app: Context) {
             rightType = rightType.code,
             rightValue = rightValue
         )
-        controller.seedLedMemory(settings.ledRestoreSnapshot())
+        // Colors wait for LightingScheduler cabin ambient; dials/temps restore immediately.
+        if (com.sphy.airconcontroller.lighting.LightingScheduler.currentPeriod() != null) {
+            controller.seedLedMemory(settings.ledRestoreSnapshot())
+        } else {
+            controller.clearPendingLed()
+        }
     }
 
     fun hasBluetoothPermissions(): Boolean =

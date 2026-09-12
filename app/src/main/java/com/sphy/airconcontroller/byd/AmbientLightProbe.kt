@@ -51,15 +51,18 @@ class AmbientLightProbe(context: Context) {
     /**
      * Resolve current lighting period with hysteresis so tunnels / dusk don't flicker.
      * Darker → night; brighter → day. Mid levels keep the previous period.
+     *
+     * [Resolution.reliable] is false when only the clock fallback is available — callers
+     * should defer color apply until a cabin sensor answers (cold boot).
      */
-    fun resolvePeriod(previous: LightingPeriod?): LightingPeriod {
+    fun resolvePeriod(previous: LightingPeriod?): Resolution {
         val bydLevel = bydIllumLevel()
         if (bydLevel != null) {
             lastSource = "vehicle"
             lastDetail = "illum level $bydLevel"
             val next = periodFromIllum(bydLevel, previous)
             lastPeriod = next
-            return next
+            return Resolution(next, reliable = true)
         }
 
         val lowBeam = bydLowBeamOn()
@@ -68,7 +71,7 @@ class AmbientLightProbe(context: Context) {
             lastDetail = if (lowBeam) "low beam on" else "low beam off"
             val next = if (lowBeam) LightingPeriod.NIGHT else LightingPeriod.DAY
             lastPeriod = next
-            return next
+            return Resolution(next, reliable = true)
         }
 
         val lux = lastAndroidLux
@@ -77,7 +80,7 @@ class AmbientLightProbe(context: Context) {
             lastDetail = "%.0f lx".format(lux)
             val next = periodFromLux(lux, previous)
             lastPeriod = next
-            return next
+            return Resolution(next, reliable = true)
         }
 
         // Last resort: local clock (no geography hardcoding).
@@ -86,8 +89,10 @@ class AmbientLightProbe(context: Context) {
         lastDetail = "%02d:00".format(hour)
         val next = if (hour in 7..17) LightingPeriod.DAY else LightingPeriod.NIGHT
         lastPeriod = next
-        return next
+        return Resolution(next, reliable = false)
     }
+
+    data class Resolution(val period: LightingPeriod, val reliable: Boolean)
 
     private fun periodFromIllum(level: Int, previous: LightingPeriod?): LightingPeriod {
         // LEVEL1 brightest … LEVEL5 darkest (<80 lux). Mid band keeps prior state.

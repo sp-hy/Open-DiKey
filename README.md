@@ -71,7 +71,7 @@ After that, the listener starts automatically on reboot.
 
 **Dials** — Left dial = passenger, right dial = driver. Click to switch between **temp** and **fan**, rotate to adjust.
 
-**Auto-start** — A quiet background notification keeps the DiKey working after the UI closes or the car restarts.
+**Auto-start** — Open DiKey once after install so local ADB can start a shell-uid ACC daemon (same idea as Overdrive). That daemon survives DiLink force-stop and restarts the DiKey listener when the head unit wakes. Also allow the app in DiLink **auto-start / run in background**.
 
 **In-app updates** — Settings → Check for updates pulls the latest `open-dikey.apk` from [GitHub Releases](https://github.com/sp-hy/Open-DiKey/releases).
 

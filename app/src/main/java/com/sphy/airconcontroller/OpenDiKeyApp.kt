@@ -11,6 +11,8 @@ class OpenDiKeyApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // Pin ADB on as early as possible (Settings.Global; no adbd required).
+        com.sphy.airconcontroller.adb.AdbKeepAlive.ensure(this, "app-create", viaShell = false)
         dikey = DiKeySession(this)
         dikey.start()
         com.sphy.airconcontroller.lighting.LightingScheduler.scheduleNext(this)

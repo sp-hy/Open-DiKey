@@ -157,17 +157,18 @@ class ClimateTestActivity : OpenDiKeyActivity() {
     private suspend fun persistDump(dump: String): String {
         val file = File(getExternalFilesDir(null) ?: filesDir, "ac-dump.txt")
         file.writeText(dump)
+        // Shark DiLink: /data/local/tmp is not writable — mirror to sdcard for adb pull.
         runCatching {
             AdbPermissionManager.runShellCommand(
                 this,
-                "cp ${file.absolutePath} /data/local/tmp/ac-dump.txt"
+                "cp ${file.absolutePath} /sdcard/ac-dump.txt"
             )
         }
         Log.w(DUMP_TAG, "dump begin ${dump.lineSequence().count()} lines -> ${file.absolutePath}")
         dump.lineSequence().forEach { line ->
             if (line.isNotEmpty()) Log.w(DUMP_TAG, line.take(4000))
         }
-        Log.w(DUMP_TAG, "dump end — pull /data/local/tmp/ac-dump.txt")
+        Log.w(DUMP_TAG, "dump end — pull /sdcard/ac-dump.txt or ${file.absolutePath}")
         return file.absolutePath
     }
 
