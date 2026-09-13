@@ -155,6 +155,11 @@
       android:parentActivityName=".MainActivity"
       android:theme="@style/Theme.OpenDiKey" />
     <activity
+      android:name=".SentryActivity"
+      android:exported="false"
+      android:parentActivityName=".MainActivity"
+      android:theme="@style/Theme.OpenDiKey" />
+    <activity
       android:name=".VehicleDumpActivity"
       android:exported="false"
       android:parentActivityName=".DebugHubActivity"

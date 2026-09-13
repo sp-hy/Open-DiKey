@@ -12,30 +12,30 @@ import java.net.HttpURLConnection
 import java.net.URL
 
 /**
- * Launches OverDrive ([PACKAGE]) when installed, otherwise fetches the latest APK from
- * [https://github.com/sp-hy/Overdrive-release](https://github.com/sp-hy/Overdrive-release).
+ * Launches Sentry / Strike ([PACKAGE]) when installed, otherwise fetches the latest APK from
+ * [https://github.com/sp-hy/Strike/releases](https://github.com/sp-hy/Strike/releases).
  */
 object OverdriveInstaller {
     const val PACKAGE = "com.strike"
-    const val REPO = "sp-hy/Overdrive-release"
-    private const val USER_AGENT = "OpenDiKey-Overdrive"
-    private const val APK_CACHE_NAME = "overdrive.apk"
+    const val REPO = "sp-hy/Strike"
+    private const val USER_AGENT = "OpenDiKey-Sentry"
+    private const val APK_CACHE_NAME = "sentry.apk"
 
-    fun isInstalled(context: Context): Boolean =
+    fun isInstalled(context: Context): Boolean {
+        val pm = context.packageManager
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                context.packageManager.getPackageInfo(
-                    PACKAGE,
-                    PackageManager.PackageInfoFlags.of(0),
-                )
+                pm.getPackageInfo(PACKAGE, PackageManager.PackageInfoFlags.of(0))
             } else {
                 @Suppress("DEPRECATION")
-                context.packageManager.getPackageInfo(PACKAGE, 0)
+                pm.getPackageInfo(PACKAGE, 0)
             }
-            true
+            return true
         } catch (_: PackageManager.NameNotFoundException) {
-            false
+            // Fall through — some DiLink builds report NameNotFound until launchers refresh.
         }
+        return pm.getLaunchIntentForPackage(PACKAGE) != null
+    }
 
     fun launchIntent(context: Context): Intent? =
         context.packageManager.getLaunchIntentForPackage(PACKAGE)?.apply {
@@ -87,7 +87,9 @@ object OverdriveInstaller {
             if (!name.endsWith(".apk", ignoreCase = true)) continue
             val url = asset.getString("browser_download_url")
             val lower = name.lowercase()
-            if ("overdrive" in lower || "release" in lower || "arm64" in lower) {
+            if ("strike" in lower || "sentry" in lower || "overdrive" in lower ||
+                "release" in lower || "arm64" in lower
+            ) {
                 return url
             }
             if (fallback == null) fallback = url
