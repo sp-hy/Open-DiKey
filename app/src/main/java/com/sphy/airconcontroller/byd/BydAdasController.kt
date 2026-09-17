@@ -2,6 +2,7 @@ package com.sphy.airconcontroller.byd
 
 import android.content.Context
 import android.util.Log
+import com.sphy.airconcontroller.storage.AdasCustomProfile
 import java.lang.reflect.InvocationTargetException
 
 /**
@@ -140,6 +141,18 @@ class BydAdasController(context: Context) {
             aebRaw = aebRaw,
             driverMonitor = dmsRaw?.let { decodeDms(it) },
             driverMonitorRaw = dmsRaw,
+        )
+    }
+
+    /** Write all fields of a Custom profile in one shot (Apply button and auto-apply on launch). */
+    fun applyCustomProfile(profile: AdasCustomProfile): List<CommandResult> {
+        val lda = LaneDepartureMode.entries.firstOrNull { it.name == profile.laneDeparture }
+            ?: LaneDepartureMode.BOTH
+        return listOf(
+            setEmergencyLaneKeepAssist(profile.elka),
+            setLaneDepartureAssist(lda),
+            setAutomaticEmergencyBraking(profile.aeb),
+            setDriverMonitoringCamera(profile.dms),
         )
     }
 

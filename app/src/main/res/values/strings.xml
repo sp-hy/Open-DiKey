@@ -147,6 +147,11 @@
   <string name="adas_apply">Apply</string>
   <string name="adas_apply_ok">Custom ADAS profile applied</string>
   <string name="adas_apply_partial">Some settings failed: %1$s</string>
+  <string name="adas_apply_on_boot">Apply automatically on app launch</string>
+  <string name="adas_auto_apply_dialog_title">Auto-apply ADAS on launch</string>
+  <string name="adas_auto_apply_disclaimer">Automatically re-writing ADAS settings (lane assist, emergency braking, driver monitoring) on every app launch changes active driver-assistance systems without a manual check each time. You are solely responsible for confirming these settings are appropriate before and while driving. Use at your own risk.</string>
+  <string name="adas_auto_apply_save">Save</string>
+  <string name="adas_auto_apply_cancel">Cancel</string>
   <string name="adas_elka_title">Emergency lane keep assist</string>
   <string name="adas_lda_title">Lane departure assist</string>
   <string name="adas_lda_off">Off</string>

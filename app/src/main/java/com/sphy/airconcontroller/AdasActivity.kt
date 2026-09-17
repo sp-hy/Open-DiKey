@@ -163,19 +163,17 @@ class AdasActivity : OpenDiKeyActivity() {
 
     private fun applyCustomProfile() {
         val profile = settings.adasCustomProfile()
-        val lda = laneMode(profile.laneDeparture)
+        val labels = listOf(
+            getString(R.string.adas_elka_title),
+            getString(R.string.adas_lda_title),
+            getString(R.string.adas_aeb_title),
+            getString(R.string.adas_dms_title),
+        )
         lifecycleScope.launch {
             applyButton.isEnabled = false
-            val results = withContext(Dispatchers.IO) {
-                listOf(
-                    getString(R.string.adas_elka_title) to adas.setEmergencyLaneKeepAssist(profile.elka),
-                    getString(R.string.adas_lda_title) to adas.setLaneDepartureAssist(lda),
-                    getString(R.string.adas_aeb_title) to adas.setAutomaticEmergencyBraking(profile.aeb),
-                    getString(R.string.adas_dms_title) to adas.setDriverMonitoringCamera(profile.dms),
-                )
-            }
+            val results = withContext(Dispatchers.IO) { adas.applyCustomProfile(profile) }
             applyButton.isEnabled = true
-            val failed = results.filter { !it.second.success }
+            val failed = labels.zip(results).filter { !it.second.success }
             val message = if (failed.isEmpty()) {
                 getString(R.string.adas_apply_ok)
             } else {

@@ -338,6 +338,13 @@ class AppSettings(context: Context) {
             .apply()
     }
 
+    /** Whether the saved Custom ADAS profile should be auto-applied when the app launches. */
+    var adasApplyOnBoot: Boolean
+        get() = prefs.getBoolean(KEY_ADAS_APPLY_ON_BOOT, true)
+        set(value) {
+            prefs.edit().putBoolean(KEY_ADAS_APPLY_ON_BOOT, value).apply()
+        }
+
     fun lightingProfile(period: LightingPeriod): LightingProfile {
         ensureLightingProfiles()
         val key = if (period == LightingPeriod.DAY) KEY_PROFILE_DAY else KEY_PROFILE_NIGHT
@@ -502,5 +509,6 @@ class AppSettings(context: Context) {
         private const val KEY_ADAS_CUSTOM_LDA = "adas_custom_lda"
         private const val KEY_ADAS_CUSTOM_AEB = "adas_custom_aeb"
         private const val KEY_ADAS_CUSTOM_DMS = "adas_custom_dms"
+        private const val KEY_ADAS_APPLY_ON_BOOT = "adas_apply_on_boot"
     }
 }

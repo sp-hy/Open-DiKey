@@ -19,7 +19,10 @@ import com.sphy.airconcontroller.MainActivity
 import com.sphy.airconcontroller.OpenDiKeyApp
 import com.sphy.airconcontroller.R
 import com.sphy.airconcontroller.adb.AdbPermissionManager
+import com.sphy.airconcontroller.byd.BydAdasController
 import com.sphy.airconcontroller.lighting.LightingScheduler
+import com.sphy.airconcontroller.storage.AdasEditMode
+import com.sphy.airconcontroller.storage.AppSettings
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -57,6 +60,7 @@ class DiKeyListenService : Service() {
             if (!AdbPermissionManager.isSetupComplete(applicationContext)) {
                 AdbPermissionManager.runSetup(applicationContext)
             }
+            applyAdasCustomProfileIfNeeded()
         }
     }
 
@@ -70,6 +74,15 @@ class DiKeyListenService : Service() {
         scope.cancel()
         main.removeCallbacksAndMessages(null)
         super.onDestroy()
+    }
+
+    /** Re-apply the saved Custom ADAS profile on launch instead of waiting for a manual Apply tap. */
+    private fun applyAdasCustomProfileIfNeeded() {
+        val settings = AppSettings(applicationContext)
+        if (settings.adasEditMode != AdasEditMode.CUSTOM || !settings.adasApplyOnBoot) return
+        val results = BydAdasController(applicationContext).applyCustomProfile(settings.adasCustomProfile())
+        val ok = results.count { it.success }
+        Log.i(TAG, "auto-applied ADAS custom profile: $ok/${results.size} ok")
     }
 
     private fun startAsForeground() {

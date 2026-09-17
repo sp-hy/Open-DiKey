@@ -6,13 +6,18 @@ import android.hardware.usb.UsbDevice
 import android.hardware.usb.UsbManager
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
+import android.view.MotionEvent
 import androidx.appcompat.app.AlertDialog
 import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import com.google.android.material.switchmaterial.SwitchMaterial
 import com.sphy.airconcontroller.adb.AdbPermissionManager
 import com.sphy.airconcontroller.dikey.DiKeySession
+import com.sphy.airconcontroller.storage.AppSettings
 import com.sphy.airconcontroller.ui.OpenDiKeyActivity
 import com.sphy.airconcontroller.usb.UsbPermissionReceiver
 import kotlinx.coroutines.launch
@@ -20,6 +25,13 @@ import kotlinx.coroutines.launch
 class MainActivity : OpenDiKeyActivity() {
     private lateinit var session: DiKeySession
     private lateinit var connStatus: android.widget.TextView
+
+    private val adasHoldHandler = Handler(Looper.getMainLooper())
+    private var adasHoldFired = false
+    private val adasHoldRunnable = Runnable {
+        adasHoldFired = true
+        showAdasAutoApplyDialog()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -37,8 +49,29 @@ class MainActivity : OpenDiKeyActivity() {
         findViewById<android.view.View>(R.id.homeVehicleInfoButton).setOnClickListener {
             startActivity(Intent(this, VehicleInfoActivity::class.java))
         }
-        findViewById<android.view.View>(R.id.homeAdasButton).setOnClickListener {
-            startActivity(Intent(this, AdasActivity::class.java))
+        findViewById<android.view.View>(R.id.homeAdasButton).let { adasButton ->
+            adasButton.setOnClickListener {
+                startActivity(Intent(this, AdasActivity::class.java))
+            }
+            adasButton.setOnTouchListener { v, event ->
+                when (event.actionMasked) {
+                    MotionEvent.ACTION_DOWN -> {
+                        adasHoldFired = false
+                        adasHoldHandler.postDelayed(adasHoldRunnable, ADAS_HOLD_MS)
+                        true
+                    }
+                    MotionEvent.ACTION_UP -> {
+                        adasHoldHandler.removeCallbacks(adasHoldRunnable)
+                        if (!adasHoldFired) v.performClick()
+                        true
+                    }
+                    MotionEvent.ACTION_CANCEL -> {
+                        adasHoldHandler.removeCallbacks(adasHoldRunnable)
+                        true
+                    }
+                    else -> false
+                }
+            }
         }
         findViewById<android.view.View>(R.id.homeSentryButton).setOnClickListener {
             startActivity(Intent(this, SentryActivity::class.java))
@@ -71,6 +104,11 @@ class MainActivity : OpenDiKeyActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleLaunchIntent(intent)
+    }
+
+    override fun onDestroy() {
+        adasHoldHandler.removeCallbacks(adasHoldRunnable)
+        super.onDestroy()
     }
 
     @Deprecated("Deprecated in Java")
@@ -117,6 +155,21 @@ class MainActivity : OpenDiKeyActivity() {
         )
     }
 
+    private fun showAdasAutoApplyDialog() {
+        val settings = AppSettings(this)
+        val view = layoutInflater.inflate(R.layout.dialog_adas_auto_apply, null)
+        val toggle = view.findViewById<SwitchMaterial>(R.id.adasAutoApplyDialogSwitch)
+        toggle.isChecked = settings.adasApplyOnBoot
+        AlertDialog.Builder(this)
+            .setTitle(R.string.adas_auto_apply_dialog_title)
+            .setView(view)
+            .setPositiveButton(R.string.adas_auto_apply_save) { _, _ ->
+                settings.adasApplyOnBoot = toggle.isChecked
+            }
+            .setNegativeButton(R.string.adas_auto_apply_cancel, null)
+            .show()
+    }
+
     private fun startAdbSetupIfNeeded() {
         lifecycleScope.launch {
             AdbPermissionManager.ensureVehicleApiAccess(this@MainActivity)
@@ -152,5 +205,6 @@ class MainActivity : OpenDiKeyActivity() {
 
     companion object {
         private const val BT_PERMISSION_REQUEST = 1001
+        private const val ADAS_HOLD_MS = 5_000L
     }
 }
